@@ -1,0 +1,57 @@
+/* Mobile-friendly sidebar: hidden off-canvas by default on small screens,
+   opened via the hamburger button injected by mobile-sidebar.js. */
+@media (max-width: 767px) {
+  *:has(> aside.bg-sidebar) {
+    display: flex !important;
+  }
+
+  aside.bg-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 60 !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
+  }
+
+  html.__wc-sidebar-open aside.bg-sidebar {
+    transform: translateX(0) !important;
+  }
+}
+
+#__wc-sidebar-backdrop {
+  display: none;
+}
+html.__wc-sidebar-open #__wc-sidebar-backdrop {
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 55;
+}
+
+#__wc-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 65;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: #111;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  padding: 0;
+}
+@media (max-width: 767px) {
+  #__wc-sidebar-toggle {
+    display: inline-flex;
+  }
+}

@@ -1,0 +1,72 @@
+DirectoryIndex disabled
+DirectorySlash Off
+Options -MultiViews -Indexes
+
+# --- Block files that must never be served -------------------------------
+# Stops a repeat of the public backup-new.zip exposure: archives, dumps,
+# logs, env files and editor backups are refused even if dropped in here.
+<FilesMatch "\.(sql|sql\.gz|zip|tar|tgz|gz|rar|7z|bak|old|orig|swp|log|env|ini|sh)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^\.(env|git|htpasswd)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Let cPanel AutoSSL (Let's Encrypt / Sectigo) validate the domain
+    RewriteRule ^\.well-known/ - [L]
+
+    # Refuse any other dot-path (/.git/, /.env, ...)
+    RewriteRule (^|/)\. - [F,L]
+
+    # Force HTTPS. cPanel terminates SSL in Apache/LiteSpeed itself,
+    # so %{HTTPS} is authoritative (no load-balancer headers needed).
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Handle X-XSRF-Token Header
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Strip trailing slash (force redirect to clean URL, except root and API).
+    # Matches THE_REQUEST (what the browser actually asked for) rather than
+    # REQUEST_URI, which an upstream internal rewrite can change to /public/...
+    RewriteCond %{THE_REQUEST} !\s/+api/ [NC]
+    RewriteCond %{THE_REQUEST} \s/+(.+?)/+[\s?]
+    RewriteRule ^ https://%{HTTP_HOST}/%1 [L,R=301]
+
+    # API routes -> Laravel
+    RewriteRule ^api/ index.php [L]
+    RewriteRule ^api$ index.php [L]
+
+    # Prefer .html file over a directory with the same name (Next.js static export).
+    # %{REQUEST_FILENAME} is used instead of %{DOCUMENT_ROOT} so this works whether
+    # the document root is this public/ folder or its parent.
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteCond %{REQUEST_FILENAME}.html -f
+    RewriteRule ^(.+?)/?$ $1.html [L]
+
+    # Serve .html for clean URLs: /dashboard/tasks -> dashboard/tasks.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME}.html -f
+    RewriteRule ^(.+)$ $1.html [L]
+
+    # Send everything else to Laravel front controller (SPA fallback)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+    Header always unset X-Powered-By
+</IfModule>

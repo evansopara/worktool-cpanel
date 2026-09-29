@@ -1,0 +1,32 @@
+# Safety net. The recommended setup points the domain's document root at
+# the public/ folder, in which case this file is never used.
+# If the document root is this folder instead, everything is routed into
+# public/ and the application source, .env and storage are never served.
+
+Options -Indexes
+
+<FilesMatch "^\.(env|git|htpasswd)">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|sql\.gz|zip|tar|tgz|gz|rar|7z|bak|old|orig|swp|log|env|ini|sh|lock)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^(artisan|composer\.json|package\.json|phpunit\.xml|vite\.config\.js)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # AutoSSL domain validation
+    RewriteRule ^\.well-known/ - [L]
+
+    # Force HTTPS here, before the internal rewrite, so the redirect keeps
+    # the visitor's original path instead of exposing /public/...
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Route every request into public/ (without looping)
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

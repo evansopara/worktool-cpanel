@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,18566,(t,e,o)=>{e.exports=t.r(76562)},52683,t=>{"use strict";var e=t.i(71645),o=t.i(18566);t.s(["default",0,function(){let t=(0,o.useRouter)();return(0,e.useEffect)(()=>{let e=localStorage.getItem("auth_token");t.replace(e?"/dashboard":"/auth")},[t]),null}])}]);
