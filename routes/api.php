@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Task timer
     Route::post('/tasks/{task}/timer/start', [TaskController::class, 'startTimer']);
     Route::post('/tasks/{task}/timer/stop', [TaskController::class, 'stopTimer']);
+    Route::post('/tasks/{task}/estimate', [TaskController::class, 'reviseEstimate']);
 
     // Task iterations
     Route::get('/tasks/{task}/iterations', [TaskController::class, 'iterations']);
@@ -180,4 +181,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // KPI report
     Route::get('/departments', [\App\Http\Controllers\Api\KpiReportController::class, 'departments']);
     Route::get('/kpi-report/productivity', [\App\Http\Controllers\Api\KpiReportController::class, 'productivity']);
+    Route::get('/kpi-report/estimate-drift', [\App\Http\Controllers\Api\KpiReportController::class, 'estimateDrift']);
 });
