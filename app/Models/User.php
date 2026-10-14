@@ -53,11 +53,6 @@ class User extends Authenticatable
         return $parts[1] ?? '';
     }
 
-    public function isTechSupport(): bool
-    {
-        return $this->role === 'staff' && $this->specialization === 'technical_support';
-    }
-
     public function currentTask() { return $this->belongsTo(Task::class, 'current_task_id'); }
     public function managedProjects() { return $this->hasMany(Project::class, 'manager_id'); }
     public function tasks() { return $this->hasMany(Task::class, 'assignee_id'); }

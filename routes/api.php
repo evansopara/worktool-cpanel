@@ -181,5 +181,4 @@ Route::middleware('auth:sanctum')->group(function () {
     // KPI report
     Route::get('/departments', [\App\Http\Controllers\Api\KpiReportController::class, 'departments']);
     Route::get('/kpi-report/productivity', [\App\Http\Controllers\Api\KpiReportController::class, 'productivity']);
-    Route::get('/kpi-report/estimate-drift', [\App\Http\Controllers\Api\KpiReportController::class, 'estimateDrift']);
 });

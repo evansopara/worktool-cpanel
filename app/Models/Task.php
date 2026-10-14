@@ -13,12 +13,11 @@ class Task extends Model
         'deadline', 'working_hours', 'working_minutes', 'time_spent',
         'is_timer_running', 'timer_start_time', 'timer_stopped_at', 'has_been_started',
         'actual_start_time', 'review_started_at', 'completed_at',
-        'submitted_at', 'submitted_by', 'is_flexible', 'original_estimate_minutes',
     ];
 
     protected $casts = [
         'start_date' => 'datetime', 'deadline' => 'datetime',
-        'is_timer_running' => 'boolean', 'has_been_started' => 'boolean', 'is_flexible' => 'boolean',
+        'is_timer_running' => 'boolean', 'has_been_started' => 'boolean',
         'timer_start_time' => 'datetime', 'timer_stopped_at' => 'datetime', 'actual_start_time' => 'datetime',
         'review_started_at' => 'datetime', 'completed_at' => 'datetime',
     ];
@@ -28,12 +27,6 @@ class Task extends Model
     public function assigner() { return $this->belongsTo(User::class, 'assigned_by'); }
     public function sessions() { return $this->hasMany(TaskSession::class); }
     public function iterations() { return $this->hasMany(TaskIteration::class); }
-    public function estimateRevisions() { return $this->hasMany(TaskEstimateRevision::class)->orderBy('created_at'); }
-
-    public function estimateMinutes(): int
-    {
-        return ((int) ($this->working_hours ?? 0)) * 60 + (int) ($this->working_minutes ?? 0);
-    }
 
     /**
      * Notify the assignee and project manager that this task's deadline
