@@ -617,13 +617,17 @@ class SimpleController extends Controller
     // ==================== ISSUE REPORTS ====================
     // Anyone can submit an app issue/suggestion. Only staff whose specialization
     // is technical_support manage the queue (see all reports, change status, comment).
+    private static function isTechSupport(User $user): bool
+    {
+        return $user->role === 'staff' && $user->specialization === 'technical_support';
+    }
 
     public function issueIndex(Request $request)
     {
         $user = $request->user();
         $query = IssueReport::with(['reporter', 'project', 'task']);
 
-        if (!$user->isTechSupport()) {
+        if (!self::isTechSupport($user)) {
             $query->where('reported_by', $user->id);
         }
 
@@ -668,7 +672,7 @@ class SimpleController extends Controller
 
     public function issueUpdate(Request $request, IssueReport $issue)
     {
-        if (!$request->user()->isTechSupport()) {
+        if (!self::isTechSupport($request->user())) {
             abort(403);
         }
 

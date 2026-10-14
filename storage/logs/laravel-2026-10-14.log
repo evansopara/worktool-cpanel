@@ -1,0 +1,17 @@
+[2026-10-14 10:16:58] production.ERROR: Command "test" is not defined.
+
+Did you mean one of these?
+    make:test
+    schedule:test {"exception":"[object] (Symfony\\Component\\Console\\Exception\\CommandNotFoundException(code: 0): Command \"test\" is not defined.
+
+Did you mean one of these?
+    make:test
+    schedule:test at C:/Users/HP/Documents/GitHub/worktool-cpanel/vendor/symfony/console/Application.php:759)
+[stacktrace]
+#0 C:/Users/HP/Documents/GitHub/worktool-cpanel/vendor/symfony/console/Application.php(298): Symfony/Component/Console/Application->find()
+#1 C:/Users/HP/Documents/GitHub/worktool-cpanel/vendor/symfony/console/Application.php(195): Symfony/Component/Console/Application->doRun()
+#2 C:/Users/HP/Documents/GitHub/worktool-cpanel/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony/Component/Console/Application->run()
+#3 C:/Users/HP/Documents/GitHub/worktool-cpanel/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate/Foundation/Console/Kernel->handle()
+#4 C:/Users/HP/Documents/GitHub/worktool-cpanel/artisan(16): Illuminate/Foundation/Application->handleCommand()
+#5 {main}
+"} 

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\TaskSession;
 use App\Models\TaskIteration;
-use App\Models\TaskEstimateRevision;
 use App\Models\DeadlineExtensionRequest;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -21,8 +20,7 @@ class TaskController extends Controller
      */
     private function checkDeadline(Task $task): Task
     {
-        // Flexible (technical) tasks treat the deadline as a soft target only.
-        if (!$task->deadline || $task->is_flexible) return $task;
+        if (!$task->deadline) return $task;
         if (in_array($task->status, ['review', 'completed', 'not_approved', 'deadline_missed'])) {
             return $task;
         }
@@ -96,7 +94,6 @@ class TaskController extends Controller
             'progress' => 'nullable|integer|min:0|max:100',
         ]);
 
-        $assignee = null;
         if (!empty($data['assignee_id'])) {
             $assignee = \App\Models\User::find($data['assignee_id']);
             if (!$assignee || !in_array($assignee->role, ['staff', 'intern', 'project_manager'])) {
@@ -105,9 +102,6 @@ class TaskController extends Controller
         }
 
         $data['assigned_by'] = $request->user()->id;
-        $data['is_flexible'] = $assignee?->isTechSupport() ?? false;
-        $estimate = ((int) ($data['working_hours'] ?? 0)) * 60 + (int) ($data['working_minutes'] ?? 0);
-        $data['original_estimate_minutes'] = $estimate > 0 ? $estimate : null;
         $task = Task::create($data);
 
         if (!empty($task->assignee_id) && $task->assignee_id !== $request->user()->id) {
@@ -127,7 +121,7 @@ class TaskController extends Controller
     public function show(Task $task)
     {
         $this->checkDeadline($task);
-        return response()->json($task->load(['project', 'assignee', 'assigner', 'sessions', 'iterations', 'estimateRevisions.user']));
+        return response()->json($task->load(['project', 'assignee', 'assigner', 'sessions', 'iterations']));
     }
 
     public function update(Request $request, Task $task)
@@ -144,16 +138,7 @@ class TaskController extends Controller
             'working_minutes' => 'nullable|integer',
             'estimated_hours' => 'nullable|numeric',
             'progress' => 'nullable|integer|min:0|max:100',
-            'estimate_reason' => 'nullable|string',
         ]);
-
-        $estimateReason = $data['estimate_reason'] ?? null;
-        unset($data['estimate_reason']);
-        $oldEstimate = $task->estimateMinutes();
-
-        if (array_key_exists('assignee_id', $data) && $data['assignee_id'] !== $task->assignee_id) {
-            $data['is_flexible'] = (bool) \App\Models\User::find($data['assignee_id'])?->isTechSupport();
-        }
 
         if (isset($data['status']) && $data['status'] === 'review' && $task->status !== 'review') {
             $data['timer_stopped_at'] = now();
@@ -173,10 +158,6 @@ class TaskController extends Controller
 
         $oldStatus = $task->status;
         $task->update($data);
-
-        if ($task->is_flexible && $task->estimateMinutes() !== $oldEstimate) {
-            $this->recordEstimateRevision($task, $request->user()->id, $oldEstimate, $estimateReason);
-        }
 
         if (isset($data['status']) && $data['status'] !== $oldStatus) {
             if ($data['status'] === 'not_approved' && $task->assignee_id) {
@@ -287,13 +268,6 @@ class TaskController extends Controller
             return response()->json(['message' => 'Timer is not running.'], 422);
         }
 
-        // Flexible (technical) tasks must say why work stopped, so interruptions
-        // by urgent work are visible to managers.
-        $pause = $request->validate([
-            'pause_reason' => ($task->is_flexible ? 'required' : 'nullable') . '|string|in:' . implode(',', TaskSession::PAUSE_REASONS),
-            'pause_note' => 'nullable|string|max:1000',
-        ]);
-
         $elapsed = $task->timer_start_time
             ? (int) Carbon::parse($task->timer_start_time)->diffInSeconds(now())
             : 0;
@@ -303,12 +277,7 @@ class TaskController extends Controller
             ->latest()
             ->first();
         if ($session) {
-            $session->update([
-                'ended_at' => now(),
-                'duration_seconds' => $elapsed,
-                'pause_reason' => $pause['pause_reason'] ?? null,
-                'pause_note' => $pause['pause_note'] ?? null,
-            ]);
+            $session->update(['ended_at' => now(), 'duration_seconds' => $elapsed]);
         }
 
         // Don't downgrade deadline_missed status when pausing
@@ -323,60 +292,6 @@ class TaskController extends Controller
         ]);
 
         return response()->json($task->fresh());
-    }
-
-    // Estimate revisions
-    public function reviseEstimate(Request $request, Task $task)
-    {
-        $user = $request->user();
-        if ($task->assignee_id !== $user->id && !in_array($user->role, ['operations_manager', 'team_lead', 'project_manager'])) {
-            abort(403, 'Only the assignee or a manager can revise this estimate.');
-        }
-
-        $data = $request->validate([
-            'hours' => 'required|integer|min:0',
-            'minutes' => 'required|integer|min:0|max:59',
-            'reason' => 'required|string|max:1000',
-        ]);
-
-        $oldEstimate = $task->estimateMinutes();
-        $task->update(['working_hours' => $data['hours'], 'working_minutes' => $data['minutes']]);
-
-        if ($task->estimateMinutes() !== $oldEstimate) {
-            $this->recordEstimateRevision($task, $user->id, $oldEstimate, $data['reason']);
-
-            $task->load('project');
-            $name = trim("{$user->first_name} {$user->last_name}") ?: 'The assignee';
-            $recipients = collect([$task->assigned_by, $task->project->manager_id ?? null])
-                ->filter()->unique()->reject(fn ($id) => $id === $user->id);
-            foreach ($recipients as $recipientId) {
-                NotificationService::send(
-                    $recipientId,
-                    'task_estimate_revised',
-                    'Task Estimate Revised',
-                    "{$name} revised the estimate for \"{$task->title}\" to {$data['hours']}h {$data['minutes']}m: {$data['reason']}",
-                    $task->id,
-                    'task',
-                );
-            }
-        }
-
-        return response()->json($task->fresh()->load(['project', 'assignee', 'estimateRevisions.user']));
-    }
-
-    private function recordEstimateRevision(Task $task, int $userId, int $oldMinutes, ?string $reason): void
-    {
-        if ($task->original_estimate_minutes === null && $oldMinutes > 0) {
-            $task->update(['original_estimate_minutes' => $oldMinutes]);
-        }
-
-        TaskEstimateRevision::create([
-            'task_id' => $task->id,
-            'user_id' => $userId,
-            'old_minutes' => $oldMinutes,
-            'new_minutes' => $task->estimateMinutes(),
-            'reason' => $reason,
-        ]);
     }
 
     // Iterations

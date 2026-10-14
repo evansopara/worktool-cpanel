@@ -15,7 +15,6 @@
             public function handle()
             {
                 $tasks = Task::whereNotNull('deadline')
-                    ->where('is_flexible', false)
                     ->where('deadline', '<', now())
                     ->whereNotIn('status', ['review', 'completed', 'not_approved', 'deadline_missed'])
                     ->get();
