@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Mail;
 class NotificationService
 {
     /**
-     * Create a DB notification and send an email to the recipient.
+     * Create a DB notification, then push it to the recipient's devices and email it.
      *
      * @param int    $userId        Recipient user ID
      * @param string $type          Notification type slug
@@ -36,8 +36,9 @@ class NotificationService
 
         // 1. Persist in-app notification (wrapped so a schema/DB issue here
         // never breaks the primary action that triggered the notification)
+        $notification = null;
         try {
-            Notification::create([
+            $notification = Notification::create([
                 'user_id'        => $userId,
                 'type'           => $type,
                 'title'          => $title,
@@ -51,7 +52,13 @@ class NotificationService
 
         $dashboardUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/') . '/dashboard';
 
-        // 2. Send email (wrapped so a mail failure never breaks the API response)
+        // 2. Send a push notification to the user's devices (no-ops if VAPID keys
+        // aren't configured). Sent before the email so a slow SMTP server doesn't
+        // delay it. The tag matches the in-app poller's, so the browser shows a
+        // single alert when the app is open.
+        WebPushService::sendToUser($userId, $title, $message, $dashboardUrl, $notification ? "notif-{$notification->id}" : null);
+
+        // 3. Send email (wrapped so a mail failure never breaks the API response)
         try {
             if (!empty($user->email)) {
                 Mail::to($user->email)
@@ -60,8 +67,5 @@ class NotificationService
         } catch (\Throwable $e) {
             Log::warning("Notification email failed for user {$userId}: " . $e->getMessage());
         }
-
-        // 3. Send a push notification (no-ops if OneSignal isn't configured)
-        OneSignalService::sendToUser($userId, $title, $message, $dashboardUrl);
     }
 }

@@ -57,5 +57,6 @@ class User extends Authenticatable
     public function managedProjects() { return $this->hasMany(Project::class, 'manager_id'); }
     public function tasks() { return $this->hasMany(Task::class, 'assignee_id'); }
     public function notifications() { return $this->hasMany(Notification::class); }
+    public function pushSubscriptions() { return $this->hasMany(PushSubscription::class); }
     public function projectMemberships() { return $this->hasMany(ProjectMember::class); }
 }
