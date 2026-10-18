@@ -19,7 +19,6 @@ Create **new** values; do not reuse the old ones.
 - [ ] Database password (you will create a new one in step 3)
 - [ ] Gmail App Password for `evanney2018@gmail.com` — revoke the old one at
       myaccount.google.com → Security → App passwords, then create a new one
-- [ ] OneSignal REST API key — regenerate in OneSignal → Settings → Keys & IDs
 
 `APP_KEY` has already been replaced with a fresh key.
 
@@ -40,7 +39,8 @@ cPanel → **MultiPHP Manager** → select the domain → **PHP 8.3** (8.2 minim
 
 If your host has **Select PHP Version** (CloudLinux), make sure these
 extensions are enabled: `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`,
-`xml`, `ctype`, `fileinfo`, `bcmath`, `curl`, `intl`.
+`xml`, `ctype`, `fileinfo`, `bcmath`, `curl`, `intl`, and `gmp`
+(recommended: it makes sending push notifications much faster).
 
 ### 3. Create the database
 cPanel → **MySQL Databases**
@@ -75,7 +75,7 @@ Edit `workapp/.env` and replace every `CHANGE_ME`:
 | `DB_USERNAME` | the user from step 3 |
 | `DB_PASSWORD` | the new password from step 3 |
 | `MAIL_PASSWORD` | the new Gmail App Password |
-| `ONESIGNAL_REST_API_KEY` | the new OneSignal key |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | the Web Push keys (see step 11) |
 
 Leave `APP_DEBUG=false`. Keep `.env` permissions at **640**.
 
@@ -116,10 +116,20 @@ cd ~/workapp && php artisan optimize
 Tested: config, route, view and event caches all work with this app.
 Run `php artisan optimize:clear` after any future `.env` change.
 
-### 11. Update OneSignal
-OneSignal dashboard → your app → Settings → Web configuration →
-set the site URL to `https://workapp.wcdigitalagency.com`.
-Push notifications are tied to the origin, so users must re-subscribe once.
+### 11. Web Push notifications
+Push notifications are self-hosted (no OneSignal account). The service
+worker is `public/sw.js`; subscriptions live in the `push_subscriptions`
+table, created by `php artisan migrate --force`.
+
+- Copy `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` from the
+  developer's `.env`, or generate a pair once with
+  `php -r "require 'vendor/autoload.php'; print_r(Minishlink\WebPush\VAPID::createVapidKeys());"`.
+  **Never change them afterwards**: new keys silently break every device's
+  subscription until each user re-enables alerts.
+- Each user taps **Enable alerts** in the header once per device.
+  On iPhone/iPad (iOS 16.4+) they must first *Add to Home Screen* and open
+  Worktool from that icon.
+- Test with `php artisan push:test <userId>`.
 
 ## Verify
 

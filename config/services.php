@@ -35,9 +35,10 @@ return [
         ],
     ],
 
-    'onesignal' => [
-        'app_id' => env('ONESIGNAL_APP_ID'),
-        'rest_api_key' => env('ONESIGNAL_REST_API_KEY'),
+    'webpush' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:notification@workapp.wcdigitalagency.com'),
     ],
 
 ];

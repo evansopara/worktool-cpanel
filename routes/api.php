@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\MemoController;
 use App\Http\Controllers\Api\SimpleController;
 
@@ -111,6 +112,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
+
+    // Web Push subscriptions
+    Route::get('/push/public-key', [PushSubscriptionController::class, 'publicKey']);
+    Route::post('/push/subscriptions', [PushSubscriptionController::class, 'store']);
+    Route::delete('/push/subscriptions', [PushSubscriptionController::class, 'destroy']);
 
     // Memos
     Route::get('/memos', [MemoController::class, 'index']);

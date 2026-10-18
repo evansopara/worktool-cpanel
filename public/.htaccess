@@ -80,4 +80,10 @@ Options -MultiViews -Indexes
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
     Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
     Header always unset X-Powered-By
+
+    # The push service worker must be re-checked on every load, or phones keep
+    # running an outdated copy.
+    <Files "sw.js">
+        Header set Cache-Control "no-cache"
+    </Files>
 </IfModule>
