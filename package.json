@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "inject-theme": "node scripts/inject-theme.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

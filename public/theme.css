@@ -1,0 +1,130 @@
+/* Dark mode. The app's built CSS already ships the dark design tokens under
+   `.dark`; theme.js toggles that class on <html>. The rules below cover the
+   hardcoded Tailwind palette classes that bypass those tokens. */
+
+html.dark {
+  color-scheme: dark;
+
+  /* Neutral surfaces and borders */
+  --color-gray-100: #262626;
+  --color-gray-200: #ffffff1f;
+  --color-gray-300: #404040;
+  --color-gray-600: #a1a1a1;
+  --color-gray-700: #c4c4c4;
+  --color-gray-800: #e5e5e5;
+  --color-slate-100: #1e293b;
+  --color-slate-200: #ffffff1f;
+  --color-slate-600: #a3b1c6;
+  --color-slate-700: #cad5e2;
+
+  /* Light tints (badges, alerts, pills) become translucent washes of the
+     base hue. 50/100 are backgrounds, 200/300 mostly borders and hovers. */
+  --color-red-50: #fb2c361a;
+  --color-red-100: #fb2c3629;
+  --color-red-200: #fb2c3647;
+  --color-red-300: #fb2c3666;
+  --color-orange-50: #fe6e001a;
+  --color-orange-100: #fe6e0029;
+  --color-orange-200: #fe6e0047;
+  --color-amber-50: #f99c001a;
+  --color-amber-100: #f99c0029;
+  --color-amber-200: #f99c0047;
+  --color-yellow-50: #edb2001a;
+  --color-yellow-100: #edb20029;
+  --color-yellow-200: #edb20047;
+  --color-green-50: #00c7581a;
+  --color-green-100: #00c75829;
+  --color-green-200: #00c75847;
+  --color-cyan-50: #00b8db1a;
+  --color-cyan-100: #00b8db29;
+  --color-blue-50: #3080ff1a;
+  --color-blue-100: #3080ff29;
+  --color-blue-200: #3080ff47;
+  --color-indigo-100: #615fff29;
+  --color-violet-50: #8e51ff1a;
+  --color-violet-200: #8e51ff47;
+  --color-purple-50: #ad46ff1a;
+  --color-purple-100: #ad46ff29;
+  --color-purple-200: #ad46ff47;
+  --color-pink-50: #f6339a1a;
+  --color-pink-200: #f6339a47;
+  --color-rose-100: #ff205629;
+
+  /* Dark text shades, lightened. Only for hues never used as a 600-800
+     background; red/green/violet are handled per class below. */
+  --color-orange-600: #ff8904;
+  --color-orange-700: #ffb86a;
+  --color-orange-800: #ffb86a;
+  --color-amber-600: #ffb900;
+  --color-amber-700: #ffd230;
+  --color-yellow-600: #fdc700;
+  --color-yellow-700: #ffdf20;
+  --color-yellow-800: #ffdf20;
+  --color-cyan-700: #53eafd;
+  --color-blue-600: #51a2ff;
+  --color-blue-700: #8ec5ff;
+  --color-blue-800: #8ec5ff;
+  --color-indigo-800: #a3b3ff;
+  --color-purple-600: #c27aff;
+  --color-purple-700: #dab2ff;
+  --color-purple-800: #dab2ff;
+  --color-pink-600: #fb64b6;
+  --color-rose-700: #ffa1ad;
+}
+
+html.dark .bg-white { background-color: var(--card); }
+html.dark .via-white { --tw-gradient-via: var(--card); }
+html.dark .bg-black\/10 { background-color: #ffffff1a; }
+html.dark .bg-blue-50\/60 { background-color: #3080ff1a; }
+html.dark .text-slate-900 { color: var(--foreground); }
+html.dark .bg-slate-900 { background-color: #334155; }
+@media (hover: hover) {
+  html.dark .hover\:bg-slate-800:hover { background-color: #475569; }
+}
+
+html.dark .text-red-600 { color: #ff6467; }
+html.dark .text-red-700,
+html.dark .text-red-800 { color: #ffa2a2; }
+html.dark .text-red-700\/70 { color: #ffa2a2b3; }
+html.dark .text-green-600 { color: #05df72; }
+html.dark .text-green-700,
+html.dark .text-green-800 { color: #7bf1a8; }
+html.dark .text-green-700\/70 { color: #7bf1a8b3; }
+html.dark .text-blue-700\/70 { color: #8ec5ffb3; }
+html.dark .text-violet-600 { color: #a684ff; }
+/* Light text on the dark violet gradient banner keeps its light shade. */
+html.dark .text-purple-200 { color: #e9d5ff; }
+
+/* Theme toggle button (injected by theme.js) */
+#__wc-theme-toggle {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 70;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+#__wc-theme-toggle:hover { opacity: 1; }
+#__wc-theme-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The mobile sidebar hamburger is hardcoded white. */
+html.dark #__wc-sidebar-toggle {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}

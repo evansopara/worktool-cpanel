@@ -19,6 +19,9 @@ class NotificationService
      * @param string $message       Full message body
      * @param int|null $referenceId  ID of the related model
      * @param string|null $referenceType Model type (e.g. 'task', 'memo')
+     * @param string|null $pushTag     Push tag; notifications sharing a tag replace each
+     *                                  other on the device instead of stacking
+     * @param bool   $email         Also send an email (off for short-lived reminders)
      */
     public static function send(
         int $userId,
@@ -27,6 +30,8 @@ class NotificationService
         string $message,
         ?int $referenceId = null,
         ?string $referenceType = null,
+        ?string $pushTag = null,
+        bool $email = true,
     ): void {
         // Deactivated users get no new in-app notifications and no emails.
         $user = User::find($userId);
@@ -54,9 +59,14 @@ class NotificationService
 
         // 2. Send a push notification to the user's devices (no-ops if VAPID keys
         // aren't configured). Sent before the email so a slow SMTP server doesn't
-        // delay it. The tag matches the in-app poller's, so the browser shows a
-        // single alert when the app is open.
-        WebPushService::sendToUser($userId, $title, $message, $dashboardUrl, $notification ? "notif-{$notification->id}" : null);
+        // delay it. The default tag matches the in-app poller's, so the browser
+        // shows a single alert when the app is open.
+        $pushTag ??= $notification ? "notif-{$notification->id}" : null;
+        WebPushService::sendToUser($userId, $title, $message, $dashboardUrl, $pushTag);
+
+        if (!$email) {
+            return;
+        }
 
         // 3. Send email (wrapped so a mail failure never breaks the API response)
         try {
