@@ -131,6 +131,45 @@ table, created by `php artisan migrate --force`.
   Worktool from that icon.
 - Test with `php artisan push:test <userId>`.
 
+### 12. Task deadline reminders
+The scheduler cron (step 8) also reminds a task's assignee when the task is
+halfway between its start and its deadline, and again 10 minutes before the
+deadline (push and in-app only, no email). It needs two new columns on
+`tasks`. With a terminal, `php artisan migrate --force` adds them. Without
+one, run this in **phpMyAdmin → SQL**. It also marks reminders whose time has
+already passed as sent, so deploying doesn't trigger a burst of old reminders:
+
+```sql
+SET time_zone = '+01:00'; -- Africa/Lagos, the app timezone
+
+ALTER TABLE `tasks`
+  ADD COLUMN `halfway_notified_at` timestamp NULL DEFAULT NULL,
+  ADD COLUMN `deadline_warning_notified_at` timestamp NULL DEFAULT NULL;
+
+UPDATE `tasks` SET `halfway_notified_at` = NOW()
+WHERE `deadline` IS NOT NULL
+  AND `status` NOT IN ('review', 'completed', 'not_approved', 'deadline_missed')
+  AND TIMESTAMPADD(SECOND,
+        GREATEST(0, TIMESTAMPDIFF(SECOND, COALESCE(`start_date`, `created_at`, `deadline`), `deadline`)) DIV 2,
+        COALESCE(`start_date`, `created_at`, `deadline`)) <= NOW();
+
+UPDATE `tasks`
+SET `halfway_notified_at` = COALESCE(`halfway_notified_at`, NOW()),
+    `deadline_warning_notified_at` = NOW()
+WHERE `deadline` IS NOT NULL
+  AND `status` NOT IN ('review', 'completed', 'not_approved', 'deadline_missed')
+  AND `deadline` <= NOW() + INTERVAL 10 MINUTE;
+
+INSERT INTO `migrations` (`migration`, `batch`)
+SELECT '2026_10_20_000001_add_deadline_reminder_flags_to_tasks_table', COALESCE(MAX(`batch`), 0) + 1
+FROM `migrations`
+WHERE NOT EXISTS (SELECT 1 FROM `migrations`
+  WHERE `migration` = '2026_10_20_000001_add_deadline_reminder_flags_to_tasks_table');
+```
+
+Until the columns exist, tasks keep working and missed deadlines are still
+flagged; only the new reminders are skipped.
+
 ## Verify
 
 | Check | Expected |
