@@ -94,8 +94,9 @@ const leave = [
   { id: 4, user: { id: 1, first_name: 'Olubukola', last_name: 'Ige', email: 'bukkieige@gmail.com' }, leave_type: 'day_off', start_date: ago(340), end_date: ago(340), total_days: 1, reason: 'I have a pre-existing appointment.', status: 'approved', created_at: ago(345) },
 ];
 const queries = [
-  { id: 1, subject: 'Late submissions', message: 'Three tasks were submitted after the deadline this week.', status: 'acknowledged', response: 'Noted, it won’t happen again.', submitter: people.ige, assignee: people.victor, created_at: ago(90) },
-  { id: 2, subject: 'Work app misuse', message: 'Timers were left running overnight.', status: 'pending', response: null, submitter: people.ige, assignee: people.ashe, created_at: ago(400) },
+  { id: 3, subject: 'Missed stand-up', message: 'You missed Monday and Tuesday stand-ups without notice.', status: 'pending', response: null, assigned_to: 10, submitted_by: 1, submitter: people.ige, assignee: people.victor, created_at: ago(0.5) },
+  { id: 1, assigned_to: 10, submitted_by: 1, subject: 'Late submissions', message: 'Three tasks were submitted after the deadline this week.', status: 'acknowledged', response: 'Noted, it won’t happen again.', submitter: people.ige, assignee: people.victor, created_at: ago(90) },
+  { id: 2, assigned_to: 11, submitted_by: 1, subject: 'Work app misuse', message: 'Timers were left running overnight.', status: 'pending', response: null, submitter: people.ige, assignee: people.ashe, created_at: ago(400) },
 ];
 const staffComplaints = [
   { id: 7, name: 'Temitayo Matthew Akintunde', email: 'akinstemi123@gmail.com', department: 'Test', detailed_explanation: 'The office internet keeps dropping during client calls.', screenshot_url: null, status: 'pending', review_comments: null, created_at: ago(170) },
@@ -141,13 +142,17 @@ const sops: { id: number; title: string; description: string | null; category: s
 ];
 const issues = [{ id: 1, title: 'Not able to resolve staff issues', description: 'I need to have access to close off staff issues', status: 'closed', created_at: ago(40) }];
 const notifications = [
-  { id: 1, title: 'New Task Assigned', message: 'You have been assigned the task: "Logo files for TopMart"', type: 'task_assigned', read: false, reference_id: 2, reference_type: 'task', created_at: ago(0.02) },
-  { id: 2, title: 'Deadline Extension Approved', message: 'Your deadline extension for "Work on Contourfajasafrica email" was approved.', type: 'deadline_extension_decided', read: false, reference_id: 1, reference_type: 'deadline_extension_request', created_at: ago(0.3) },
+  { id: 1, title: 'New Task Assigned', message: 'You have been assigned the task: "Logo files for TopMart"', type: 'task_assigned', read: false, reference_id: 2, reference_type: 'task', link: '/dashboard/tasks?task=2', created_at: ago(0.02) },
+  { id: 2, title: 'Deadline Extension Approved', message: 'Your deadline extension for "Work on Contourfajasafrica email" was approved.', type: 'deadline_extension_decided', read: false, reference_id: 1, reference_type: 'deadline_extension_request', link: '/dashboard/tasks?view=ext', created_at: ago(0.3) },
   { id: 3, title: 'Task Completed', message: 'Your task "Monthly report" has been marked complete.', type: 'task_completed', read: true, reference_id: 4, reference_type: 'task', created_at: ago(2) },
 ];
 const reviewLinks = [
   { id: 1, title: 'TopMart homepage v2', link_url: 'https://example.com/topmart', description: 'Updated hero, new product grid and footer links.', status: 'pending', sent_by: 2, assigned_to: 13, sender: people.titi, assignee: people.emma, review_comment: null, reviewed_at: null, created_at: ago(1) },
   { id: 2, title: 'Q4 ad creatives', link_url: 'https://example.com/ads', description: null, status: 'not_approved', sent_by: 2, assigned_to: 13, sender: people.titi, assignee: people.emma, review_comment: 'Logo is too small on the square formats.', reviewed_at: ago(0.5), created_at: ago(3) },
+];
+const support = [
+  { id: 1, title: 'VPN keeps disconnecting', description: 'Drops every 10 minutes since Monday.', requester_id: 10, requester: people.victor, status: 'open', priority: 'high', created_at: ago(0.2) },
+  { id: 2, title: 'Figma seat', description: 'Need edit access for the TopMart file.', requester_id: 10, requester: people.victor, status: 'resolved', priority: 'medium', resolution: 'Seat added to your account.', created_at: ago(4) },
 ];
 let noteSeq = 4;
 const notes = [
@@ -447,6 +452,8 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
         staff_summary: { id: 10, name: 'Victor Adeleye', role: 'staff', department: 'Web', total_hours: 74.5, active_days: 18, tasks_completed: 7, tasks_in_progress: 2, productivity_score: 92 },
       });
     }
+    if (method === 'get' && url === '/support') return ok(config, support);
+    if (method === 'get' && url === '/badges') return ok(config, mine ? { tasks: 2, inbox: 3, penalties: 1, support: 0 } : { tasks: 4, inbox: 1, people: 3, clients: 2, reviews: 1 });
     if (method === 'get' && url === '/notes') return ok(config, notes);
     if (method === 'post' && url === '/notes') {
       notes.unshift({ id: noteSeq++, title: body.title, content: body.content, color: body.color, updated_at: new Date().toISOString() });

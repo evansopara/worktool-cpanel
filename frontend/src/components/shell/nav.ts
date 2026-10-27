@@ -18,6 +18,7 @@ export type SectionKey =
   | 'clients'
   | 'insights'
   | 'library'
+  | 'reviews'
   | 'admin'
   | 'settings'
   | 'requests'
@@ -77,7 +78,7 @@ const PAGES = {
   clientComplaints: { href: '/dashboard/complaints', roles: ['operations_manager', 'team_lead'], label: 'Complaints' },
   reviewLinks: {
     href: '/dashboard/review-links',
-    roles: ['team_lead', 'project_manager'],
+    roles: ['operations_manager', 'team_lead', 'project_manager'],
     label: (u) => (u.role === 'team_lead' ? 'Assigned reviews' : 'Send for review'),
   },
   kpi: { href: '/dashboard/kpi-report', roles: ['operations_manager', 'team_lead'], label: 'KPI report' },
@@ -139,10 +140,15 @@ const S = {
     key: 'clients',
     label: 'Clients',
     sub: 'Sentiment and complaints',
-    pages: [PAGES.sentiment, PAGES.clientComplaints, PAGES.reviewLinks],
-    // Review links aren't in the design; Team Leads keep that page as a tab.
+    pages: [PAGES.sentiment, PAGES.clientComplaints],
     hub: HUBS.clients,
-    hubCovers: [PAGES.sentiment, PAGES.clientComplaints],
+  },
+  // Not in the design; its own menu item so Project Managers can find it.
+  reviews: {
+    key: 'reviews',
+    label: (u) => (u.role === 'team_lead' ? 'Assigned reviews' : 'Send for review'),
+    sub: 'Links sent for review',
+    pages: [PAGES.reviewLinks],
   },
   insights: { key: 'insights', label: 'Insights', sub: 'KPI report', pages: [PAGES.kpi] },
   library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes], hub: HUBS.library },
@@ -168,7 +174,7 @@ const S = {
 // 2026-10-27), but still only see the pages they could open before.
 const MANAGER_MENU: { label: string; sections: SectionDef[] }[] = [
   { label: '', sections: [S.home, S.projects, S.tasks, S.inbox, S.calendar] },
-  { label: 'Team and clients', sections: [S.people, S.clients, S.insights, S.library] },
+  { label: 'Team and clients', sections: [S.people, S.clients, S.reviews, S.insights, S.library] },
   { label: 'System', sections: [S.admin, S.settings] },
 ];
 
@@ -250,6 +256,7 @@ export const MORE_ORDER: SectionKey[] = [
   'people',
   'requests',
   'clients',
+  'reviews',
   'penalties',
   'support',
   'calendar',

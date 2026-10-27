@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\AppNotification;
 use App\Models\Notification;
 use App\Models\User;
+use App\Support\NotificationLinks;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -55,7 +56,9 @@ class NotificationService
             Log::error("Failed to persist notification for user {$userId}: " . $e->getMessage());
         }
 
-        $dashboardUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/') . '/dashboard';
+        // Push and email open the page the notification is about.
+        $dashboardUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/')
+            . NotificationLinks::for($user, $type, $referenceType, $referenceId);
 
         // 2. Send a push notification to the user's devices (no-ops if VAPID keys
         // aren't configured). Sent before the email so a slow SMTP server doesn't
