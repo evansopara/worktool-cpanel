@@ -30,9 +30,14 @@ return new class extends Migration
             // Estimate 80% / 100% alerts already sent for the current estimate.
             $table->timestamp('estimate_warned_at')->nullable();
             $table->timestamp('estimate_reached_at')->nullable();
-            // Deleting a task keeps it (and its history) out of sight instead of erasing it.
-            $table->softDeletes();
         });
+        // Deleting a task keeps it (and its history) out of sight instead of
+        // erasing it. The live table already has this column from its SQL import.
+        if (!Schema::hasColumn('tasks', 'deleted_at')) {
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
 
         Schema::table('task_sessions', function (Blueprint $table) {
             $table->boolean('started_early')->default(false);
@@ -122,8 +127,9 @@ return new class extends Migration
         Schema::table('tasks', function (Blueprint $table) {
             $table->dropColumn([
                 'original_deadline', 'original_estimate_minutes', 'instructions_updated_at',
-                'lock_early_start', 'estimate_warned_at', 'estimate_reached_at', 'deleted_at',
+                'lock_early_start', 'estimate_warned_at', 'estimate_reached_at',
             ]);
+            // deleted_at stays: the live table had it before this migration.
         });
     }
 };

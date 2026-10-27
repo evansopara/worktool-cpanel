@@ -179,8 +179,10 @@ never breaks the live site. Deploy this backend together with the new task
 screens (redesign step 4); the old screens can't show the new "start early" and
 "read the instructions" prompts.
 
-With a terminal: `php artisan migrate --force`. Without one, run this in
-**phpMyAdmin → SQL**:
+With a terminal: `php artisan migrate --force`. Without one, use
+**phpMyAdmin → Import** with `newtest/database/2026-10-27-task-history.sql`
+(the same SQL as below, without comments). Pasting into the SQL tab can lose
+line breaks, and then a `--` comment swallows the statement after it.
 
 ```sql
 SET time_zone = '+01:00'; -- Africa/Lagos, the app timezone
@@ -191,8 +193,7 @@ ALTER TABLE `tasks`
   ADD COLUMN `instructions_updated_at` timestamp NULL DEFAULT NULL,
   ADD COLUMN `lock_early_start` tinyint(1) NOT NULL DEFAULT 0,
   ADD COLUMN `estimate_warned_at` timestamp NULL DEFAULT NULL,
-  ADD COLUMN `estimate_reached_at` timestamp NULL DEFAULT NULL,
-  ADD COLUMN `deleted_at` timestamp NULL DEFAULT NULL;
+  ADD COLUMN `estimate_reached_at` timestamp NULL DEFAULT NULL;
 
 ALTER TABLE `task_sessions`
   ADD COLUMN `started_early` tinyint(1) NOT NULL DEFAULT 0,
