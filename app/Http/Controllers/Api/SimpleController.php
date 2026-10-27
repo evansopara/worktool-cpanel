@@ -18,6 +18,7 @@ use App\Models\ClientSentiment;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
@@ -559,6 +560,10 @@ class SimpleController extends Controller
         ]);
         $data['created_by'] = $request->user()->id;
         $data['status'] = 'active';
+        // The live sops table has a required department column with no default.
+        if (Schema::hasColumn('sops', 'department')) {
+            $data['department'] = $request->user()->department ?: ($data['category'] ?? null) ?: 'General';
+        }
 
         $sop = Sop::create($data);
         return response()->json($sop, 201);

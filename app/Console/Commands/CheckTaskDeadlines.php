@@ -8,6 +8,7 @@
     use Illuminate\Console\Command;
     use Illuminate\Support\Facades\DB;
     use Illuminate\Support\Facades\Schema;
+    use Throwable;
 
         class CheckTaskDeadlines extends Command
         {
@@ -16,15 +17,25 @@
 
             public function handle()
             {
-                [$halfwayCount, $warningCount] = $this->sendReminders();
-                [$warnedCount, $reachedCount] = $this->checkEstimates();
-
+                // Stopping timers at the deadline comes first, and each task is
+                // handled on its own, so a failing reminder or one bad row can't
+                // leave timers running past their deadline.
                 $tasks = Task::whereNotNull('deadline')
-                    ->where('deadline', '<', now())
+                    ->where('deadline', '<=', now())
                     ->whereNotIn('status', Task::CLOSED_STATUSES)
                     ->get();
 
-                $count = $tasks->filter(fn (Task $task) => $task->markDeadlineMissed())->count();
+                $count = 0;
+                foreach ($tasks as $task) {
+                    try {
+                        $count += $task->markDeadlineMissed() ? 1 : 0;
+                    } catch (Throwable $e) {
+                        report($e);
+                    }
+                }
+
+                [$halfwayCount, $warningCount] = $this->attempt(fn () => $this->sendReminders());
+                [$warnedCount, $reachedCount] = $this->attempt(fn () => $this->checkEstimates());
 
                 $this->info("Sent {$halfwayCount} halfway and {$warningCount} final reminder(s), {$warnedCount} estimate warning(s) and {$reachedCount} estimate-reached alert(s). Marked {$count} task(s) as deadline_missed.");
                 return 0;
@@ -130,6 +141,17 @@
                 }
 
                 return [$warned, $reached];
+            }
+
+            /** @return array{int, int} */
+            private function attempt(callable $step): array
+            {
+                try {
+                    return $step();
+                } catch (Throwable $e) {
+                    report($e);
+                    return [0, 0];
+                }
             }
 
             /** 150 → "2h 30m". */
