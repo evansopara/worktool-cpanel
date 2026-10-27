@@ -101,7 +101,14 @@ type SectionDef = {
   /** One line under the label on the mobile More tiles */
   sub: string;
   pages: PageDef[];
+  /** A rebuilt hub page that replaces `pages` for the roles that can open it. */
+  hub?: PageDef;
 };
+
+// Rebuilt hub pages (spec §9 step 6).
+const HUBS = {
+  people: { href: '/dashboard/people', roles: ['operations_manager', 'team_lead'], label: 'People' },
+} satisfies Record<string, PageDef>;
 
 const S = {
   home: { key: 'home', label: 'Home', sub: '', pages: [PAGES.home] },
@@ -115,6 +122,7 @@ const S = {
     label: 'People',
     sub: 'Team, leave, queries, complaints',
     pages: [PAGES.leave, PAGES.team, PAGES.queries, PAGES.staffComplaints],
+    hub: HUBS.people,
   },
   clients: {
     key: 'clients',
@@ -182,7 +190,8 @@ export function buildNav(user: User): NavGroup[] {
       label: g.label,
       sections: g.sections
         .map((s): NavSection | null => {
-          const pages = s.pages
+          const defs = s.hub && s.hub.roles.includes(role) ? [s.hub] : s.pages;
+          const pages = defs
             .filter((p) => p.roles.includes(role))
             .map((p) => ({ href: p.href, label: typeof p.label === 'function' ? p.label(user) : p.label }));
           if (pages.length === 0) return null;

@@ -86,6 +86,22 @@ const chat = [
   { id: 3, content: 'What is the update?', sender_id: 2, sender: { id: 2, first_name: 'Sandra', last_name: 'Mike' }, created_at: new Date(Date.now() - 2 * 3600_000).toISOString() },
 ];
 
+const ago = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
+const leave = [
+  { id: 1, user: { id: 20, first_name: 'Linda', last_name: 'Ekeh', email: 'linda.ekeh22@gmail.com' }, leave_type: 'annual', start_date: ago(-36), end_date: ago(-37), total_days: 1, reason: 'Dear BI, I would like to take a day off for a family event.', status: 'pending', created_at: ago(2) },
+  { id: 2, user: { id: 21, first_name: 'Temitayo', last_name: 'Akintunde', email: 'akinstemi123@gmail.com' }, leave_type: 'annual', start_date: ago(-28), end_date: ago(-32), total_days: 5, reason: 'Travelling home.', status: 'pending', created_at: ago(4) },
+  { id: 3, user: { id: 22, first_name: 'Mirakl', last_name: '', email: 'somchimiracle@gmail.com' }, leave_type: 'leave_of_absence', start_date: ago(200), end_date: ago(194), total_days: 5, reason: 'My presence is needed at home.', status: 'approved', created_at: ago(215) },
+  { id: 4, user: { id: 1, first_name: 'Olubukola', last_name: 'Ige', email: 'bukkieige@gmail.com' }, leave_type: 'day_off', start_date: ago(340), end_date: ago(340), total_days: 1, reason: 'I have a pre-existing appointment.', status: 'approved', created_at: ago(345) },
+];
+const queries = [
+  { id: 1, subject: 'Late submissions', message: 'Three tasks were submitted after the deadline this week.', status: 'acknowledged', response: 'Noted, it won’t happen again.', submitter: people.ige, assignee: people.victor, created_at: ago(90) },
+  { id: 2, subject: 'Work app misuse', message: 'Timers were left running overnight.', status: 'pending', response: null, submitter: people.ige, assignee: people.ashe, created_at: ago(400) },
+];
+const staffComplaints = [
+  { id: 7, name: 'Temitayo Matthew Akintunde', email: 'akinstemi123@gmail.com', department: 'Test', detailed_explanation: 'The office internet keeps dropping during client calls.', screenshot_url: null, status: 'pending', review_comments: null, created_at: ago(170) },
+  ...[1, 2, 3].map((id) => ({ id, name: 'Linda Ekeh', email: 'linda.ekeh22@gmail.com', department: 'Design', detailed_explanation: 'Laptop charger replacement.', screenshot_url: null, status: 'resolved', review_comments: 'Replaced.', created_at: ago(300 - id) })),
+];
+
 function sampleProjects() {
   const day = 86400000;
   const p = (id: number, name: string, category: string, status: string, progress: number, endDays: number, idleDays = 0) => ({
@@ -238,6 +254,19 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
             }),
       });
     }
+    if (method === 'get' && url === '/leave') return ok(config, leave);
+    if (method === 'put' && (m = url.match(/^\/leave\/(\d+)\/decide$/))) {
+      const l = leave.find((x) => x.id === Number(m![1]));
+      if (l) l.status = body.status;
+      return ok(config, {});
+    }
+    if (method === 'get' && url === '/queries') return ok(config, queries);
+    if (method === 'get' && url === '/staff-complaints') return ok(config, staffComplaints);
+    if (method === 'put' && (m = url.match(/^\/staff-complaints\/(\d+)$/))) {
+      const c = staffComplaints.find((x) => x.id === Number(m![1]));
+      if (c) Object.assign(c, { status: body.status, review_comments: body.review_comments ?? null });
+      return ok(config, {});
+    }
     if (method === 'get' && url === '/deadline-requests') return ok(config, extensions());
     if (method === 'get' && url === '/projects') return ok(config, sampleProjects());
     if (method === 'get' && (m = url.match(/^\/projects\/(\d+)\/messages$/))) return ok(config, chat);
@@ -265,7 +294,13 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
       plan = body.status === 'completed' ? Math.max(plan, Number(m[1])) : Number(m[1]) - 1;
       return ok(config, {});
     }
-    if (method === 'get' && url === '/users') return ok(config, Object.values(people).map((u) => ({ ...u, role: u.id >= 10 ? 'staff' : 'project_manager' })));
+    if (method === 'get' && url === '/users') {
+      const roles: Record<number, [string, string, string?]> = {
+        1: ['operations_manager', 'available'], 2: ['project_manager', 'available', 'Automation'], 10: ['staff', 'busy', 'Web'],
+        11: ['staff', 'offline', 'Copywriting'], 12: ['intern', 'available'], 13: ['team_lead', 'on_leave'],
+      };
+      return ok(config, Object.values(people).map((u) => ({ ...u, email: `${u.first_name.toLowerCase()}@wcdigitalagency.com`, role: roles[u.id][0], work_status: roles[u.id][1], department: roles[u.id][2] ?? null })));
+    }
     if (method === 'get' && url === '/notifications/unread-count') return ok(config, { count: 2 });
     if (method === 'get' && (m = url.match(/^\/tasks\/(\d+)\/events$/))) return ok(config, events(find(m[1])));
     if (method === 'get' && (m = url.match(/^\/tasks\/(\d+)$/))) return ok(config, detail(find(m[1])));

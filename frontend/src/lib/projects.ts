@@ -77,6 +77,7 @@ export function fmtRange(start?: string | null, end?: string | null): string {
   if (!start || !end) return fmtDay(start ?? end);
   const a = new Date(start);
   const b = new Date(end);
+  if (a.toDateString() === b.toDateString()) return fmtDay(start);
   return a.getFullYear() === b.getFullYear() ? `${format(a, 'MMM d')} – ${format(b, 'MMM d, yyyy')}` : `${fmtDay(start)} – ${fmtDay(end)}`;
 }
 

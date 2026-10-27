@@ -92,7 +92,7 @@ class HomeController extends Controller
                     'count' => $leave->count(),
                     'label' => $leave->count() === 1 ? 'Leave application pending' : 'Leave applications pending',
                     'detail' => $this->names($leave->map(fn ($l) => $l->user?->fullName())),
-                    'href' => '/dashboard/leave',
+                    'href' => '/dashboard/people?tab=leave',
                 ];
             }
 
@@ -114,7 +114,7 @@ class HomeController extends Controller
                     'count' => $staff->count(),
                     'label' => $staff->count() === 1 ? 'Staff complaint pending' : 'Staff complaints pending',
                     'detail' => $this->numbers($staff),
-                    'href' => '/dashboard/staff-complaints',
+                    'href' => '/dashboard/people?tab=complaints',
                 ];
             }
         }
