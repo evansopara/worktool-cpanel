@@ -26,6 +26,8 @@ class SopPermissionsTest extends TestCase
         Schema::create('sops', function (Blueprint $t) {
             $t->id();
             $t->string('title');
+            // As on the live database: required, no default.
+            $t->string('department', 100);
             $t->text('description')->nullable();
             $t->string('category')->nullable();
             $t->string('status')->default('active');
@@ -43,7 +45,7 @@ class SopPermissionsTest extends TestCase
 
         $this->manager = User::forceCreate(['username' => 'ige', 'first_name' => 'Olubukola', 'role' => 'operations_manager', 'password' => 'x']);
         $this->staff = User::forceCreate(['username' => 'victor', 'first_name' => 'Victor', 'role' => 'staff', 'password' => 'x']);
-        $this->sopId = DB::table('sops')->insertGetId(['title' => 'Website delivery', 'created_by' => $this->manager->id]);
+        $this->sopId = DB::table('sops')->insertGetId(['title' => 'Website delivery', 'department' => 'General', 'created_by' => $this->manager->id]);
     }
 
     public function test_staff_can_read_but_not_change_sops(): void
@@ -64,10 +66,11 @@ class SopPermissionsTest extends TestCase
 
     public function test_managers_change_sops_and_segments_must_match_their_sop(): void
     {
-        $otherSop = DB::table('sops')->insertGetId(['title' => 'Other']);
+        $otherSop = DB::table('sops')->insertGetId(['title' => 'Other', 'department' => 'General']);
         $foreign = DB::table('sop_segments')->insertGetId(['sop_id' => $otherSop, 'title' => 'Keep', 'content' => 'me']);
 
         Sanctum::actingAs($this->manager);
+        $this->postJson('/api/sops', ['title' => 'Onboarding', 'category' => null])->assertCreated();
         $this->postJson("/api/sops/{$this->sopId}/segments", ['title' => 'Kickoff', 'content' => 'Call the client'])->assertCreated();
         $this->putJson("/api/sops/{$this->sopId}", ['title' => 'Website delivery v2'])->assertOk();
         $this->deleteJson("/api/sops/{$this->sopId}/segments/{$foreign}")->assertNotFound();

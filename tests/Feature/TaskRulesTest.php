@@ -262,6 +262,63 @@ class TaskRulesTest extends TestCase
 
     // ── Requests ────────────────────────────────────────────────────────
 
+    public function test_after_the_deadline_the_timer_and_submit_are_locked(): void
+    {
+        $task = $this->task(['deadline' => '2026-10-26 10:00:00', 'start_date' => '2026-10-26 09:00:00']);
+        Sanctum::actingAs($this->staff);
+
+        $this->postJson("/api/tasks/{$task->id}/timer/start", ['confirm_read' => true])->assertStatus(422)->assertJson(['code' => 'deadline_passed']);
+        $this->postJson("/api/tasks/{$task->id}/submit")->assertStatus(422)->assertJson(['code' => 'deadline_passed']);
+        $this->assertSame('deadline_missed', $task->fresh()->status);
+    }
+
+    public function test_stopping_after_the_deadline_finds_the_timer_already_stopped_by_the_system(): void
+    {
+        $task = $this->task(['deadline' => '2026-10-26 10:15:00', 'start_date' => '2026-10-26 09:00:00', 'is_timer_running' => true, 'timer_start_time' => '2026-10-26 10:00:00']);
+        Sanctum::actingAs($this->staff);
+
+        $this->postJson("/api/tasks/{$task->id}/timer/stop")->assertStatus(422)->assertJson(['code' => 'not_running']);
+        $task->refresh();
+        $this->assertFalse($task->is_timer_running);
+        $this->assertSame('deadline_missed', $task->status);
+    }
+
+    public function test_only_one_timer_runs_at_a_time(): void
+    {
+        $running = $this->task(['title' => 'Homepage copy', 'is_timer_running' => true, 'timer_start_time' => now(), 'status' => 'in_progress']);
+        $next = $this->task(['title' => 'Logo']);
+        Sanctum::actingAs($this->staff);
+
+        $this->postJson("/api/tasks/{$next->id}/timer/start")
+            ->assertStatus(422)
+            ->assertJson(['code' => 'other_running', 'running_task' => ['id' => $running->id]]);
+        $this->assertFalse($next->fresh()->is_timer_running);
+    }
+
+    public function test_a_deadline_before_the_start_is_refused(): void
+    {
+        Sanctum::actingAs($this->manager);
+        $this->postJson('/api/tasks', [
+            'title' => 'Backwards', 'project_id' => $this->projectId, 'assignee_id' => $this->staff->id,
+            'start_date' => '2026-10-27 12:00:00', 'deadline' => '2026-10-27 09:00:00',
+        ])->assertStatus(422)->assertJson(['code' => 'deadline_before_start']);
+
+        $task = $this->task();
+        $this->putJson("/api/tasks/{$task->id}", ['start_date' => '2026-10-26 17:00:00'])
+            ->assertStatus(422)->assertJson(['code' => 'deadline_before_start']);
+    }
+
+    public function test_the_deadline_check_stops_timers_even_if_reminders_fail(): void
+    {
+        $task = $this->task(['deadline' => '2026-10-26 10:15:00', 'is_timer_running' => true, 'timer_start_time' => '2026-10-26 10:00:00']);
+        // Reminders and estimate checks need columns this table may not have.
+        \Illuminate\Support\Facades\Schema::table('tasks', fn ($t) => $t->dropColumn('estimate_warned_at'));
+
+        $this->artisan('tasks:check-deadlines')->assertSuccessful();
+        $this->assertFalse($task->fresh()->is_timer_running);
+        $this->assertSame('deadline_missed', $task->fresh()->status);
+    }
+
     public function test_approved_extension_moves_the_deadline_but_not_the_original(): void
     {
         $task = $this->task();

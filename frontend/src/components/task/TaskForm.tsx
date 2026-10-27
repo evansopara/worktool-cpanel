@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { projectsApi, usersApi } from '@/lib/api';
 import { toDatetimeLocalValue } from '@/lib/utils';
 import { Sheet, SheetActions, SheetTitle } from '@/components/wc';
-import { errorText, fmtWhen, ruleError, taskApi, type TaskDetail } from '@/lib/tasks';
+import { errorText, fmtWhen, ruleError, taskApi, workingMinutes, type TaskDetail } from '@/lib/tasks';
 
 // New task / Edit task. Not drawn in the design; built from its parts.
 
@@ -85,6 +85,15 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
   const initial = useMemo(() => (task ? fromTask(task) : EMPTY), [task]);
   const [form, setForm] = useState<FormState>(initial);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+  // Changing either date fills the estimate with the office hours between
+  // them (WORK_DAY); it can still be typed over.
+  const setDate = (k: 'start_date' | 'deadline', v: string) =>
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      const mins = next.start_date && next.deadline ? workingMinutes(new Date(next.start_date), new Date(next.deadline)) : 0;
+      return mins > 0 ? { ...next, working_hours: String(Math.floor(mins / 60)), working_minutes: mins % 60 ? String(mins % 60) : '' } : next;
+    });
+  const datesBackwards = !!form.start_date && !!form.deadline && new Date(form.deadline) <= new Date(form.start_date);
 
   const { data: projects = [] } = useQuery<ProjectRow[]>({ queryKey: ['projects'], queryFn: () => projectsApi.list().then((r) => r.data) });
   const { data: users = [] } = useQuery<UserRow[]>({ queryKey: ['users'], queryFn: () => usersApi.list().then((r) => r.data) });
@@ -147,7 +156,7 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
     const u = users.find((x) => String(x.id) === id);
     return u ? `${u.first_name} ${u.last_name}`.trim() : 'This person';
   };
-  const canSave = form.title.trim() && form.project_id && !conflict && (!needsReason || form.reason.trim()) && !save.isPending;
+  const canSave = form.title.trim() && form.project_id && !conflict && !datesBackwards && (!needsReason || form.reason.trim()) && !save.isPending;
 
   return (
     <>
@@ -207,12 +216,12 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
             </Field>
           )}
           <Field label="Scheduled start">
-            <input type="datetime-local" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} className={input} />
+            <input type="datetime-local" value={form.start_date} onChange={(e) => setDate('start_date', e.target.value)} className={input} />
           </Field>
           <Field label="Deadline">
-            <input type="datetime-local" value={form.deadline} min={form.start_date || undefined} onChange={(e) => set('deadline', e.target.value)} className={input} />
+            <input type="datetime-local" value={form.deadline} min={form.start_date || undefined} onChange={(e) => setDate('deadline', e.target.value)} aria-invalid={datesBackwards} className={input} />
           </Field>
-          <Field label="Estimate">
+          <Field label="Estimate" hint="Worked out from the dates (8am–6pm, Mon–Fri). You can change it.">
             <div className="flex gap-2">
               <input type="number" min={0} placeholder="Hours" aria-label="Estimate hours" value={form.working_hours} onChange={(e) => set('working_hours', e.target.value)} className={input} />
               <input type="number" min={0} max={59} placeholder="Minutes" aria-label="Estimate minutes" value={form.working_minutes} onChange={(e) => set('working_minutes', e.target.value)} className={input} />
@@ -227,6 +236,12 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
             <span className="text-[12.5px] text-ink-3">Start shows “Opens at …” until then</span>
           </span>
         </label>
+
+        {datesBackwards && (
+          <p role="alert" className="m-0 rounded-2xl bg-missed-tint px-4 py-3 text-[13.5px] font-semibold text-missed">
+            The deadline is before the start, so this task would be missed as soon as it opens. Set the deadline after {fmtWhen(new Date(form.start_date).toISOString())}.
+          </p>
+        )}
 
         {conflict && (
           <p className="m-0 rounded-2xl bg-missed-tint px-4 py-3 text-[13.5px] text-missed">

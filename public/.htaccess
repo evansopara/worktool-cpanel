@@ -86,4 +86,15 @@ Options -MultiViews -Indexes
     <Files "sw.js">
         Header set Cache-Control "no-cache"
     </Files>
+
+    # Pages and the unversioned scripts are re-checked on every load, so a
+    # deploy shows up straight away instead of phones keeping the old UI.
+    <FilesMatch "\.(html|txt|webmanifest)$|^(manifest\.json|theme\.js|theme\.css)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+
+    # Build files have a content hash in their name, so they can be kept.
+    <If "%{REQUEST_URI} =~ m#^/_next/static/#">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </If>
 </IfModule>

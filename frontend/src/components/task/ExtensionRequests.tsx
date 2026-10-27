@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { Avatar, Button, Sheet, SheetActions, SheetDescription, SheetTitle, StatusPill } from '@/components/wc';
+import { Avatar, Button, IconButton, Sheet, SheetActions, SheetDescription, SheetTitle, StatusPill } from '@/components/wc';
 import { errorText, fmtWhen, personName, taskApi, type ExtensionRequest } from '@/lib/tasks';
 
 // Extension requests tab on Tasks / My tasks (Tasks, StaffTasks, MTasks, MStaffTasks artboards).
@@ -70,6 +70,7 @@ export function ExtensionBanner({ requests, onOpen }: { requests: ExtensionReque
 
 export function ManagerExtensions({ requests }: { requests: ExtensionRequest[] }) {
   const decide = useDecide();
+  const [viewing, setViewing] = useState<ExtensionRequest | null>(null);
   const pending = requests.filter((r) => r.status === 'pending');
 
   return (
@@ -140,15 +141,18 @@ export function ManagerExtensions({ requests }: { requests: ExtensionRequest[] }
               </span>
             </span>
             {statusPill(r)}
+            <ViewButton r={r} onView={setViewing} />
           </div>
         ))}
       </section>
+      <ExtensionDetails request={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }
 
 export function StaffExtensions({ requests }: { requests: ExtensionRequest[] }) {
   const [asking, setAsking] = useState(false);
+  const [viewing, setViewing] = useState<ExtensionRequest | null>(null);
   return (
     <section aria-labelledby="h-ext" className="flex flex-col gap-3.5 rounded-[26px] bg-surface p-5 lg:rounded-card-lg lg:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -175,10 +179,73 @@ export function StaffExtensions({ requests }: { requests: ExtensionRequest[] }) 
             <strong>{fmtWhen(r.approved_deadline ?? r.requested_deadline)}</strong>
           </span>
           {statusPill(r)}
+          <ViewButton r={r} onView={setViewing} />
         </div>
       ))}
       <RequestExtensionSheet open={asking} onClose={() => setAsking(false)} />
+      <ExtensionDetails request={viewing} onClose={() => setViewing(null)} />
     </section>
+  );
+}
+
+function ViewButton({ r, onView }: { r: ExtensionRequest; onView: (r: ExtensionRequest) => void }) {
+  return (
+    <IconButton aria-label={`View request for ${r.task?.title ?? 'task'}`} title="View details" onClick={() => onView(r)}>
+      <Eye strokeWidth={2} aria-hidden="true" />
+    </IconButton>
+  );
+}
+
+/** Everything about one request, before or after it was decided. */
+function ExtensionDetails({ request: r, onClose }: { request: ExtensionRequest | null; onClose: () => void }) {
+  const rows: [string, React.ReactNode][] = r
+    ? [
+        ['Requested by', personName(r.requester) || '—'],
+        ['Task', [r.task?.title, r.task?.project?.name].filter(Boolean).join(' · ') || '—'],
+        ['Asked on', fmtWhen(r.created_at)],
+        ['Current deadline', fmtWhen(r.task?.deadline)],
+        ['Requested deadline', fmtWhen(r.requested_deadline)],
+        ...(r.status === 'approved' ? [['Approved deadline', fmtWhen(r.approved_deadline ?? r.requested_deadline)] as [string, string]] : []),
+        ...(r.status !== 'pending'
+          ? ([
+              [r.status === 'approved' ? 'Approved by' : 'Declined by', personName(r.decider) || '—'],
+              ['Decided on', fmtWhen(r.decided_at)],
+            ] as [string, string][])
+          : []),
+      ]
+    : [];
+  return (
+    <Sheet open={r !== null} onOpenChange={(o) => !o && onClose()}>
+      {r && (
+        <>
+          <div className="flex items-start justify-between gap-3">
+            <SheetTitle>Extension request</SheetTitle>
+            {statusPill(r)}
+          </div>
+          <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 rounded-[18px] bg-surface-2 p-4 text-sm">
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="font-semibold text-ink-3">{k}</dt>
+                <dd className="m-0 font-semibold text-ink">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">Reason given</span>
+            <p className="m-0 text-[14.5px] leading-normal whitespace-pre-wrap">{r.reason || '—'}</p>
+          </div>
+          {r.decision_reason && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">Decision note</span>
+              <p className="m-0 text-[14.5px] leading-normal whitespace-pre-wrap">{r.decision_reason}</p>
+            </div>
+          )}
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </>
+      )}
+    </Sheet>
   );
 }
 

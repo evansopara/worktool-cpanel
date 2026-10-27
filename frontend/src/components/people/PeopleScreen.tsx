@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, ExternalLink, MessageCircle, Plus } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Eye, MessageCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { leaveApi, queriesApi, staffComplaintsApi, usersApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Avatar, Button, Sheet, SheetActions, SheetDescription, SheetTitle, StatusPill, initials, type StatusTone } from '@/components/wc';
+import { Avatar, Button, IconButton, Sheet, SheetActions, SheetDescription, SheetTitle, StatusPill, initials, type StatusTone } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
 import { errorText, fmtWhen } from '@/lib/tasks';
 import { fmtDay, fmtRange } from '@/lib/projects';
@@ -30,6 +30,9 @@ type Leave = {
   reason?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   review_comment?: string | null;
+  reviewed_at?: string | null;
+  reviewer?: Person | null;
+  proof_image_url?: string | null;
   created_at: string;
 };
 type StaffQuery = {
@@ -160,9 +163,69 @@ function TabBar({ tabs, tab, onChange, mobile }: { tabs: { value: Tab; label: st
 
 // ── Leave ────────────────────────────────────────────────────────────
 
+/** Everything about one leave application, including the decision. */
+function LeaveDetails({ leave: l, onClose }: { leave: Leave | null; onClose: () => void }) {
+  const rows: [string, string][] = l
+    ? [
+        ['Applicant', name(l.user)],
+        ['Type', leaveType(l.leave_type)],
+        ['Period', fmtRange(l.start_date, l.end_date)],
+        ['Days', String(l.total_days ?? '—')],
+        ['Applied', fmtDay(l.created_at)],
+        ...(l.status !== 'pending'
+          ? ([
+              [l.status === 'approved' ? 'Approved by' : 'Rejected by', l.reviewer ? name(l.reviewer) : '—'],
+              ['Decided', l.reviewed_at ? fmtWhen(l.reviewed_at) : '—'],
+            ] as [string, string][])
+          : []),
+      ]
+    : [];
+  return (
+    <Sheet open={l !== null} onOpenChange={(o) => !o && onClose()}>
+      {l && (
+        <>
+          <div className="flex items-start justify-between gap-3">
+            <SheetTitle>Leave application</SheetTitle>
+            <StatusPill tone={l.status === 'approved' ? 'done' : l.status === 'rejected' ? 'missed' : 'pending'} size="md">
+              {l.status === 'approved' ? 'Approved' : l.status === 'rejected' ? 'Rejected' : 'Pending'}
+            </StatusPill>
+          </div>
+          <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 rounded-[18px] bg-surface-2 p-4 text-sm">
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="font-semibold text-ink-3">{k}</dt>
+                <dd className="m-0 font-semibold text-ink">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">Reason given</span>
+            <p className="m-0 text-[14.5px] leading-normal whitespace-pre-wrap">{l.reason || 'No reason given'}</p>
+          </div>
+          {l.review_comment && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">Reviewer’s comment</span>
+              <p className="m-0 text-[14.5px] leading-normal whitespace-pre-wrap">{l.review_comment}</p>
+            </div>
+          )}
+          {l.proof_image_url && (
+            <a href={l.proof_image_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink">
+              View attached proof <ExternalLink className="size-3.5" aria-hidden="true" />
+            </a>
+          )}
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 function LeaveTab({ items, loading }: { items: Leave[]; loading: boolean }) {
   const qc = useQueryClient();
   const [rejecting, setRejecting] = useState<Leave | null>(null);
+  const [viewing, setViewing] = useState<Leave | null>(null);
   const [comment, setComment] = useState('');
   const decide = useMutation({
     mutationFn: ({ id, status, review_comment }: { id: number; status: 'approved' | 'rejected'; review_comment?: string }) => leaveApi.decide(id, { status, review_comment }),
@@ -276,9 +339,14 @@ function LeaveTab({ items, loading }: { items: Leave[]; loading: boolean }) {
             <StatusPill tone={l.status === 'approved' ? 'done' : 'missed'} size="md">
               {l.status === 'approved' ? 'Approved' : 'Rejected'}
             </StatusPill>
+            <IconButton aria-label={`View ${name(l.user)}’s leave application`} title="View details" onClick={() => setViewing(l)}>
+              <Eye strokeWidth={2} aria-hidden="true" />
+            </IconButton>
           </div>
         ))}
       </section>
+
+      <LeaveDetails leave={viewing} onClose={() => setViewing(null)} />
 
       <Sheet open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
         {rejecting && (

@@ -3,7 +3,7 @@
 import { FileText, Pause, Pencil, Play, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, IconButton, ScheduleBoxes, ScheduleInline, StatusPill } from '@/components/wc';
-import { fmtClock, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
+import { DEADLINE_PASSED, deadlinePassed, fmtClock, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
 import { LiveClock, TimerDot, useLiveSeconds } from './LiveClock';
 import type { ActionTask, useTaskActions } from './useTaskActions';
 
@@ -29,8 +29,9 @@ function opensAt(t: TaskListItem): string | null {
 
 /** Notes under a staff task (extension pending, missed without a request, resubmit). */
 function staffNote(t: TaskListItem): { text: string; tone: string } | null {
-  if (t.pending_extension) return { text: 'Extension requested — you can keep working while it’s decided.', tone: 'text-pending' };
-  if (t.status === 'review') return { text: 'Submitted for review. You can still restart the timer or resubmit.', tone: 'text-review' };
+  const passed = deadlinePassed(t);
+  if (t.pending_extension) return { text: passed ? 'Extension requested — the timer unlocks if it’s approved.' : 'Extension requested — you can keep working while it’s decided.', tone: 'text-pending' };
+  if (t.status === 'review') return { text: passed ? 'Submitted for review.' : 'Submitted for review. You can still restart the timer or resubmit.', tone: 'text-review' };
   return null;
 }
 
@@ -137,13 +138,15 @@ export function ManagerTaskTable({
 
 function TimerButtons({ t, actions, size }: { t: TaskListItem; actions: Actions; size: 'sm' | 'md' }) {
   const locked = !t.is_timer_running ? opensAt(t) : null;
+  const passed = deadlinePassed(t);
   const h = size === 'sm' ? 'h-[38px] px-3.5 text-[13px]' : 'h-10 px-3.5 text-[13.5px]';
   const a = toActionTask(t);
   return (
     <>
       <button
         type="button"
-        disabled={actions.busy === t.id || !!locked}
+        disabled={actions.busy === t.id || !!locked || passed}
+        title={passed ? DEADLINE_PASSED : undefined}
         aria-label={`${t.is_timer_running ? 'Stop' : 'Start'} timer for ${t.title}`}
         onClick={() => (t.is_timer_running ? actions.stop(a) : actions.start(a))}
         className={cn(
@@ -157,7 +160,8 @@ function TimerButtons({ t, actions, size }: { t: TaskListItem; actions: Actions;
       </button>
       <button
         type="button"
-        disabled={actions.busy === t.id}
+        disabled={actions.busy === t.id || passed}
+        title={passed ? DEADLINE_PASSED : undefined}
         onClick={() => actions.submit(a)}
         className={cn(
           'shrink-0 cursor-pointer rounded-full border-0 bg-yellow font-ui font-bold text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-1 disabled:opacity-50',

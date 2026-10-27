@@ -45,6 +45,22 @@ class TaskController extends Controller
         }
     }
 
+    /** Once the deadline passes, the timer and Submit stay locked until the deadline is moved. */
+    private function requireBeforeDeadline(Task $task): void
+    {
+        if ($task->deadline && !$task->deadline->isFuture()) {
+            throw new TaskRuleException('deadline_passed', 'The deadline has passed. Ask for an extension to keep working on this task.');
+        }
+    }
+
+    /** A deadline at or before the start means the task is missed the moment it opens. */
+    private function requireDeadlineAfterStart($start, $deadline): void
+    {
+        if ($start && $deadline && !Carbon::parse($deadline)->gt(Carbon::parse($start))) {
+            throw new TaskRuleException('deadline_before_start', 'The deadline must be after the start date and time.');
+        }
+    }
+
     private function requireViewer(User $user, Task $task): void
     {
         if (!$user->isManager() && $task->assignee_id !== $user->id) {
@@ -147,13 +163,8 @@ class TaskController extends Controller
             $query->whereRaw('COALESCE(start_date, created_at) <= ?', [Carbon::parse($to)->endOfDay()]);
         }
 
-        // Things that need attention first: missed, then running work, then review.
-        return $query
-            ->orderByRaw("CASE status WHEN 'deadline_missed' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'on_hold' THEN 1 "
-                . "WHEN 'not_approved' THEN 2 WHEN 'review' THEN 3 WHEN 'completed' THEN 5 ELSE 4 END")
-            ->orderByRaw('deadline IS NULL')
-            ->orderBy('deadline')
-            ->orderByDesc('id');
+        // Most recently created first.
+        return $query->orderByDesc('created_at')->orderByDesc('id');
     }
 
     // ── Create, read, edit, delete (managers) ───────────────────────────
@@ -184,6 +195,8 @@ class TaskController extends Controller
                 return response()->json(['message' => 'Tasks can only be assigned to staff, interns, or project managers.'], 422);
             }
         }
+
+        $this->requireDeadlineAfterStart($data['start_date'] ?? null, $data['deadline'] ?? null);
 
         $data['assigned_by'] = $user->id;
         if (!empty($data['description'])) {
@@ -266,6 +279,10 @@ class TaskController extends Controller
         ]);
         $reason = trim((string) ($data['reason'] ?? '')) ?: null;
         unset($data['reason']);
+        $this->requireDeadlineAfterStart(
+            array_key_exists('start_date', $data) ? $data['start_date'] : $task->start_date,
+            array_key_exists('deadline', $data) ? $data['deadline'] : $task->deadline,
+        );
 
         $before = $task->replicate();
         $before->id = $task->id;
@@ -406,6 +423,14 @@ class TaskController extends Controller
         if ($task->is_timer_running) {
             throw new TaskRuleException('running', 'Timer already running.');
         }
+        $this->requireBeforeDeadline($task);
+        // One timer at a time per person.
+        $other = Task::where('assignee_id', $user->id)->where('id', '!=', $task->id)->where('is_timer_running', true)->first();
+        if ($other) {
+            throw new TaskRuleException('other_running', "Stop \"{$other->title}\" before starting another task.", 422, [
+                'running_task' => ['id' => $other->id, 'title' => $other->title],
+            ]);
+        }
 
         $read = TaskRead::where('task_id', $task->id)->where('user_id', $user->id)->exists();
         if ($task->hasInstructions() && !$read) {
@@ -473,6 +498,8 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $this->requireAssignee($user, $task);
+        // Past the deadline the system stops the timer itself.
+        $task->markDeadlineMissed();
 
         if (!$task->is_timer_running) {
             throw new TaskRuleException('not_running', 'Timer is not running.');
@@ -496,6 +523,8 @@ class TaskController extends Controller
         if ($task->status === 'completed') {
             throw new TaskRuleException('closed', 'This task is completed.');
         }
+        $task->markDeadlineMissed();
+        $this->requireBeforeDeadline($task);
 
         DB::transaction(function () use ($task, $user) {
             $task->stopRunningTimer($user->id);
@@ -617,7 +646,7 @@ class TaskController extends Controller
     public function deadlineRequests(Request $request)
     {
         $user = $request->user();
-        $query = DeadlineExtensionRequest::with(['task.project', 'requester', 'projectManager']);
+        $query = DeadlineExtensionRequest::with(['task.project', 'requester', 'projectManager', 'decider']);
 
         if ($user->role === 'project_manager') {
             $query->where('project_manager_id', $user->id);

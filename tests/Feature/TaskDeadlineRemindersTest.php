@@ -192,6 +192,7 @@ class TaskDeadlineRemindersTest extends TestCase
         // The task that was already past halfway still gets its final warning
         // (and the one due at 10:35 has now genuinely missed its deadline).
         $this->runAt('2026-10-20 11:20:00');
-        $this->assertSame(['Deadline in 10 minutes', 'Deadline Missed'], $this->titlesFor($this->assignee));
+        // Two different tasks, so the order doesn't matter.
+        $this->assertEqualsCanonicalizing(['Deadline in 10 minutes', 'Deadline Missed'], $this->titlesFor($this->assignee));
     }
 }
