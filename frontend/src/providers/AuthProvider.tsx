@@ -14,7 +14,8 @@ interface AuthContextType {
   setUser: (user: User) => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Exported for the /dev preview pages, which supply a sample user.
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

@@ -140,6 +140,15 @@ const sops: { id: number; title: string; description: string | null; category: s
   { id: 2, title: 'Client complaints', category: 'Clients', description: 'Acknowledge within an hour, resolve or escalate within a day.', segments: [] },
 ];
 const issues = [{ id: 1, title: 'Not able to resolve staff issues', description: 'I need to have access to close off staff issues', status: 'closed', created_at: ago(40) }];
+const notifications = [
+  { id: 1, title: 'New Task Assigned', message: 'You have been assigned the task: "Logo files for TopMart"', type: 'task_assigned', read: false, reference_id: 2, reference_type: 'task', created_at: ago(0.02) },
+  { id: 2, title: 'Deadline Extension Approved', message: 'Your deadline extension for "Work on Contourfajasafrica email" was approved.', type: 'deadline_extension_decided', read: false, reference_id: 1, reference_type: 'deadline_extension_request', created_at: ago(0.3) },
+  { id: 3, title: 'Task Completed', message: 'Your task "Monthly report" has been marked complete.', type: 'task_completed', read: true, reference_id: 4, reference_type: 'task', created_at: ago(2) },
+];
+const reviewLinks = [
+  { id: 1, title: 'TopMart homepage v2', link_url: 'https://example.com/topmart', description: 'Updated hero, new product grid and footer links.', status: 'pending', sent_by: 2, assigned_to: 13, sender: people.titi, assignee: people.emma, review_comment: null, reviewed_at: null, created_at: ago(1) },
+  { id: 2, title: 'Q4 ad creatives', link_url: 'https://example.com/ads', description: null, status: 'not_approved', sent_by: 2, assigned_to: 13, sender: people.titi, assignee: people.emma, review_comment: 'Logo is too small on the square formats.', reviewed_at: ago(0.5), created_at: ago(3) },
+];
 let noteSeq = 4;
 const notes = [
   { id: 1, title: 'Monday priorities', content: 'Chase TopMart content\nApprove Q4 ad budget\nInterview for design intern', color: 'bg-yellow-50 border-yellow-200', updated_at: ago(0.1) },
@@ -410,6 +419,34 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
     }
     if (method === 'put' && url === '/auth/profile') return ok(config, { ...people.ige, ...body });
     if (method === 'post' && url === '/auth/change-password') return ok(config, {});
+    if (method === 'get' && url === '/notifications') return ok(config, notifications);
+    if ((m = url.match(/^\/notifications\/(\d+)(\/read)?$/))) {
+      const i = notifications.findIndex((x) => x.id === Number(m![1]));
+      if (method === 'put') notifications[i].read = true;
+      if (method === 'delete') notifications.splice(i, 1);
+      return ok(config, {});
+    }
+    if (method === 'post' && url === '/notifications/mark-all-read') {
+      notifications.forEach((x) => (x.read = true));
+      return ok(config, {});
+    }
+    if (method === 'get' && url === '/review-links') return ok(config, reviewLinks);
+    if (method === 'get' && url === '/departments') return ok(config, ['Design', 'Web', 'Marketing']);
+    if (method === 'get' && url === '/kpi-report/productivity') {
+      const days = Array.from({ length: 22 }, (_, i) => {
+        const d = new Date(Date.now() - (22 - i) * 86400000).toISOString().slice(0, 10);
+        return { date: d, hours: [0, 1.5, 3.2, 4.5, 6, 2.4, 5.1][i % 7] };
+      });
+      const employees = [people.victor, people.ashe].map((u) => ({ ...u, role: 'staff', effective_department: 'Web' }));
+      if (!p.employee_id) return ok(config, { employees, from: days[0].date, to: days[21].date });
+      return ok(config, {
+        employees, from: days[0].date, to: days[21].date, chart: days,
+        daily_details: days.slice(-5).reverse().map((d) => ({ date: d.date, total_span_seconds: d.hours * 3600, tasks: d.hours ? ['Logo files for TopMart', 'Homepage hero'] : [], status: d.hours >= 4 ? 'good' : d.hours >= 2 ? 'fair' : 'poor' })),
+        task_breakdown: [{ title: 'Logo files for TopMart', status: 'completed', estimated_minutes: 120, actual_minutes: 100, percentage: 120 }, { title: 'Homepage hero', status: 'in_progress', estimated_minutes: 180, actual_minutes: 240, percentage: 75 }],
+        overview: { total_working_days: 22, active_days: 18, average_daily_hours: 3.4, productivity_score: 92, unique_task_count: 9 },
+        staff_summary: { id: 10, name: 'Victor Adeleye', role: 'staff', department: 'Web', total_hours: 74.5, active_days: 18, tasks_completed: 7, tasks_in_progress: 2, productivity_score: 92 },
+      });
+    }
     if (method === 'get' && url === '/notes') return ok(config, notes);
     if (method === 'post' && url === '/notes') {
       notes.unshift({ id: noteSeq++, title: body.title, content: body.content, color: body.color, updated_at: new Date().toISOString() });
