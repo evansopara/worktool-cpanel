@@ -551,6 +551,7 @@ class SimpleController extends Controller
 
     public function sopStore(Request $request)
     {
+        $this->authorizeSopWrite($request);
         $data = $request->validate([
             'title' => 'required|string',
             'description' => 'nullable|string',
@@ -570,6 +571,7 @@ class SimpleController extends Controller
 
     public function sopUpdate(Request $request, Sop $sop)
     {
+        $this->authorizeSopWrite($request);
         $sop->update($request->validate([
             'title' => 'sometimes|string',
             'description' => 'nullable|string',
@@ -579,14 +581,16 @@ class SimpleController extends Controller
         return response()->json($sop);
     }
 
-    public function sopDestroy(Sop $sop)
+    public function sopDestroy(Request $request, Sop $sop)
     {
+        $this->authorizeSopWrite($request);
         $sop->delete();
         return response()->json(['message' => 'SOP deleted.']);
     }
 
     public function sopSegmentStore(Request $request, Sop $sop)
     {
+        $this->authorizeSopWrite($request);
         $data = $request->validate([
             'title' => 'required|string',
             'content' => 'required|string',
@@ -600,6 +604,8 @@ class SimpleController extends Controller
 
     public function sopSegmentUpdate(Request $request, Sop $sop, SopSegment $segment)
     {
+        $this->authorizeSopWrite($request);
+        abort_unless((int) $segment->sop_id === (int) $sop->id, 404);
         $segment->update($request->validate([
             'title' => 'sometimes|string',
             'content' => 'sometimes|string',
@@ -608,10 +614,18 @@ class SimpleController extends Controller
         return response()->json($segment);
     }
 
-    public function sopSegmentDestroy(Sop $sop, SopSegment $segment)
+    public function sopSegmentDestroy(Request $request, Sop $sop, SopSegment $segment)
     {
+        $this->authorizeSopWrite($request);
+        abort_unless((int) $segment->sop_id === (int) $sop->id, 404);
         $segment->delete();
         return response()->json(['message' => 'Segment deleted.']);
+    }
+
+    // Everyone can read SOPs; only Operations Managers change them.
+    private function authorizeSopWrite(Request $request): void
+    {
+        $this->authorizeRole($request, ['operations_manager']);
     }
 
     // ==================== ISSUE REPORTS ====================

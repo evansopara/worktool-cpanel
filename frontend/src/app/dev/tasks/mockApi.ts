@@ -115,6 +115,38 @@ const memos = [
   { id: 3, subject: 'Design team update', content: 'New brand files are in the shared drive.', type: 'department', department: 'Design', recipients: [11], sender_id: 2, sender: people.titi, reads: [], responses: [], created_at: ago(90) },
 ];
 
+// Calendar and Library (step 6)
+const at = (days: number, hour: number, min = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(hour, min, 0, 0);
+  return d.toISOString();
+};
+const meet = (id: number, title: string, type: string, days: number, hour: number, mins: number, by: { id: number; first_name: string; last_name: string }, participants: number[], link: string | null = null) => ({
+  id, title, type, description: null, participants, start_time: at(days, hour), end_time: at(days, hour, mins), status: 'scheduled', meeting_link: link, scheduled_by: by.id, scheduler: by,
+});
+const bookings = [
+  meet(1, 'Weekly team stand-up', 'general', 1, 10, 30, people.ige, [1, 2, 10, 11, 12, 13], 'https://meet.google.com/abc-defg-hij'),
+  meet(2, 'TopMart launch review', 'team', 2, 14, 45, people.ige, [1, 10, 11]),
+  meet(3, 'Marketing call: Q4 campaigns', 'marketing_meeting_call', 6, 11, 60, people.titi, [2, 11]),
+  meet(4, 'One-on-one with Victor', 'one_on_one', -3, 15, 30, people.ige, [10]),
+];
+let sopSeq = 3;
+const sops: { id: number; title: string; description: string | null; category: string | null; segments: { id: number; title: string; content: string; order_index: number }[] }[] = [
+  { id: 1, title: 'Website delivery', category: 'Projects', description: 'From signed brief to launch, for every website project.', segments: [
+    { id: 1, title: 'Kickoff', content: 'Hold the kickoff call within two working days and confirm the brief in writing.', order_index: 0 },
+    { id: 2, title: 'Build and review', content: 'Share a staging link each Friday. Collect feedback in the project chat only.', order_index: 1 },
+  ] },
+  { id: 2, title: 'Client complaints', category: 'Clients', description: 'Acknowledge within an hour, resolve or escalate within a day.', segments: [] },
+];
+const issues = [{ id: 1, title: 'Not able to resolve staff issues', description: 'I need to have access to close off staff issues', status: 'closed', created_at: ago(40) }];
+let noteSeq = 4;
+const notes = [
+  { id: 1, title: 'Monday priorities', content: 'Chase TopMart content\nApprove Q4 ad budget\nInterview for design intern', color: 'bg-yellow-50 border-yellow-200', updated_at: ago(0.1) },
+  { id: 2, title: 'Ideas for the retreat', content: 'Half-day workshop on estimates. Ask Titi about venues.', color: 'bg-blue-50 border-blue-200', updated_at: ago(3) },
+  { id: 3, title: 'Client follow-ups', content: 'Send Delight the revised quote.', color: '', updated_at: ago(8) },
+];
+
 function sampleProjects() {
   const day = 86400000;
   const p = (id: number, name: string, category: string, status: string, progress: number, endDays: number, idleDays = 0) => ({
@@ -341,12 +373,60 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
       plan = body.status === 'completed' ? Math.max(plan, Number(m[1])) : Number(m[1]) - 1;
       return ok(config, {});
     }
+    if (method === 'get' && url === '/bookings') return ok(config, bookings);
+    if (method === 'post' && url === '/bookings') {
+      bookings.push({ ...meet(Date.now(), '', 'general', 0, 0, 0, people.ige, []), ...body });
+      return ok(config, bookings[bookings.length - 1]);
+    }
+    if ((m = url.match(/^\/bookings\/(\d+)$/))) {
+      const i = bookings.findIndex((x) => x.id === Number(m![1]));
+      if (method === 'put') Object.assign(bookings[i], body);
+      if (method === 'delete') bookings.splice(i, 1);
+      return ok(config, {});
+    }
+    if (method === 'get' && url === '/sops') return ok(config, sops);
+    if (method === 'post' && url === '/sops') {
+      const sop = { id: sopSeq++, title: body.title, description: body.description ?? null, category: body.category ?? null, segments: [] };
+      sops.unshift(sop);
+      return ok(config, sop);
+    }
+    if ((m = url.match(/^\/sops\/(\d+)$/))) {
+      const i = sops.findIndex((x) => x.id === Number(m![1]));
+      if (i < 0) fail(config, 404, {});
+      if (method === 'put') Object.assign(sops[i], body);
+      if (method === 'delete') return ok(config, sops.splice(i, 1));
+      return ok(config, sops[i]);
+    }
+    if ((m = url.match(/^\/sops\/(\d+)\/segments(?:\/(\d+))?$/))) {
+      const sop = sops.find((x) => x.id === Number(m![1])) ?? fail(config, 404, {});
+      if (method === 'post') sop.segments.push({ id: Date.now(), title: body.title, content: body.content, order_index: body.order_index ?? 0 });
+      if (method === 'delete') sop.segments = sop.segments.filter((g) => g.id !== Number(m![2]));
+      return ok(config, {});
+    }
+    if (method === 'get' && url === '/issues') return ok(config, issues);
+    if (method === 'post' && url === '/issues') {
+      issues.unshift({ id: Date.now(), title: body.title, description: body.description, status: 'pending', created_at: new Date().toISOString() });
+      return ok(config, issues[0]);
+    }
+    if (method === 'put' && url === '/auth/profile') return ok(config, { ...people.ige, ...body });
+    if (method === 'post' && url === '/auth/change-password') return ok(config, {});
+    if (method === 'get' && url === '/notes') return ok(config, notes);
+    if (method === 'post' && url === '/notes') {
+      notes.unshift({ id: noteSeq++, title: body.title, content: body.content, color: body.color, updated_at: new Date().toISOString() });
+      return ok(config, notes[0]);
+    }
+    if ((m = url.match(/^\/notes\/(\d+)$/))) {
+      const i = notes.findIndex((x) => x.id === Number(m![1]));
+      if (method === 'put') Object.assign(notes[i], body, { updated_at: new Date().toISOString() });
+      if (method === 'delete') notes.splice(i, 1);
+      return ok(config, notes[i] ?? {});
+    }
     if (method === 'get' && url === '/users') {
       const roles: Record<number, [string, string, string?]> = {
         1: ['operations_manager', 'available'], 2: ['project_manager', 'available', 'Automation'], 10: ['staff', 'busy', 'Web'],
         11: ['staff', 'offline', 'Copywriting'], 12: ['intern', 'available'], 13: ['team_lead', 'on_leave'],
       };
-      return ok(config, Object.values(people).map((u) => ({ ...u, email: `${u.first_name.toLowerCase()}@wcdigitalagency.com`, role: roles[u.id][0], work_status: roles[u.id][1], department: roles[u.id][2] ?? null })));
+      return ok(config, Object.values(people).map((u) => ({ ...u, username: u.first_name.toLowerCase(), email: `${u.first_name.toLowerCase()}@wcdigitalagency.com`, role: roles[u.id][0], work_status: roles[u.id][1], department: roles[u.id][2] ?? null, status: u.id === 12 ? 'pending' : 'active', is_active: u.id !== 13, created_at: ago(30 * u.id) })));
     }
     if (method === 'get' && url === '/notifications/unread-count') return ok(config, { count: 2 });
     if (method === 'get' && (m = url.match(/^\/tasks\/(\d+)\/events$/))) return ok(config, events(find(m[1])));

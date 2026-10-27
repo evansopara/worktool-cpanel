@@ -26,3 +26,41 @@ export function useDarkMode(): [boolean, (dark: boolean) => void] {
   };
   return [dark, setDark];
 }
+
+export type ThemeChoice = 'light' | 'dark' | 'device';
+const CHANGED = 'wc-theme';
+
+function readChoice(): ThemeChoice {
+  try {
+    const t = localStorage.getItem(KEY);
+    return t === 'dark' || t === 'light' ? t : 'device';
+  } catch {
+    return 'device';
+  }
+}
+
+function subscribeChoice(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  window.addEventListener(CHANGED, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(CHANGED, onChange);
+  };
+}
+
+// Light, dark, or "device" (no saved choice, so public/theme.js follows the OS).
+export function useThemeChoice(): [ThemeChoice, (choice: ThemeChoice) => void] {
+  const choice = useSyncExternalStore(subscribeChoice, readChoice, () => 'device' as ThemeChoice);
+  const setChoice = (next: ThemeChoice) => {
+    try {
+      if (next === 'device') localStorage.removeItem(KEY);
+      else localStorage.setItem(KEY, next);
+    } catch {
+      // Storage blocked: the class still changes for this visit.
+    }
+    const dark = next === 'device' ? window.matchMedia('(prefers-color-scheme: dark)').matches : next === 'dark';
+    document.documentElement.classList.toggle('dark', dark);
+    window.dispatchEvent(new Event(CHANGED));
+  };
+  return [choice, setChoice];
+}

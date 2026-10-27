@@ -35,6 +35,8 @@ type PageDef = {
   href: string;
   roles: Role[];
   label: string | ((user: User) => string);
+  /** Extra check beyond the role, e.g. a specialization */
+  when?: (user: User) => boolean;
 };
 
 const isTechSupportStaff = (u: User) => u.role === 'staff' && u.specialization === 'technical_support';
@@ -86,7 +88,9 @@ const PAGES = {
   issues: {
     href: '/dashboard/issues',
     roles: ALL,
-    label: (u) => (isTechSupportStaff(u) ? 'App issue management' : 'Report an issue'),
+    label: 'App issue management',
+    // Everyone else reports issues from Settings.
+    when: isTechSupportStaff,
   },
   support: {
     href: '/dashboard/support',
@@ -114,6 +118,7 @@ const HUBS = {
   people: { href: '/dashboard/people', roles: ['operations_manager', 'team_lead'], label: 'People' },
   inbox: { href: '/dashboard/messages', roles: ALL, label: 'Inbox' },
   clients: { href: '/dashboard/clients', roles: ['operations_manager', 'team_lead'], label: 'Clients' },
+  library: { href: '/dashboard/library', roles: ['operations_manager'], label: 'Library' },
 } satisfies Record<string, PageDef>;
 
 const S = {
@@ -140,7 +145,7 @@ const S = {
     hubCovers: [PAGES.sentiment, PAGES.clientComplaints],
   },
   insights: { key: 'insights', label: 'Insights', sub: 'KPI report', pages: [PAGES.kpi] },
-  library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes] },
+  library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes], hub: HUBS.library },
   admin: { key: 'admin', label: 'Admin', sub: 'Users and access', pages: [PAGES.admin] },
   settings: { key: 'settings', label: 'Settings', sub: 'Profile, password, appearance', pages: [PAGES.settings, PAGES.issues, PAGES.support] },
   staffSettings: { key: 'settings', label: 'Settings', sub: 'Profile, password, appearance', pages: [PAGES.settings, PAGES.issues] },
@@ -202,7 +207,7 @@ export function buildNav(user: User): NavGroup[] {
           const covered = s.hubCovers ?? s.pages;
           const defs = s.hub && s.hub.roles.includes(role) ? [s.hub, ...s.pages.filter((p) => !covered.includes(p))] : s.pages;
           const pages = defs
-            .filter((p) => p.roles.includes(role))
+            .filter((p) => p.roles.includes(role) && (!p.when || p.when(user)))
             .map((p) => ({ href: p.href, label: typeof p.label === 'function' ? p.label(user) : p.label }));
           if (pages.length === 0) return null;
           return {
