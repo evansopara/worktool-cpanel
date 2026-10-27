@@ -102,6 +102,19 @@ const staffComplaints = [
   ...[1, 2, 3].map((id) => ({ id, name: 'Linda Ekeh', email: 'linda.ekeh22@gmail.com', department: 'Design', detailed_explanation: 'Laptop charger replacement.', screenshot_url: null, status: 'resolved', review_comments: 'Replaced.', created_at: ago(300 - id) })),
 ];
 
+type Msg = (typeof chat)[number];
+const say = (id: number, from: { id: number; first_name: string; last_name: string }, content: string, minsAgo: number): Msg => ({ id, content, sender_id: from.id, sender: from, created_at: new Date(Date.now() - minsAgo * 60_000).toISOString() });
+const threads: Record<string, Msg[]> = {
+  general: [say(101, people.ashe, 'Good morning everyone', 900), say(102, people.jamiu, 'Noted', 880), say(103, people.ige, 'Team meeting at 10am, please join on time.', 600), say(104, people.emma, 'Acknowledged', 590)],
+  u11: [say(201, people.ashe, 'Good morning', 300), say(202, people.ashe, 'I received a notification that I was assigned a task but nothing shows on my dashboard.', 299), say(203, people.ashe, 'Kindly ignore, I’ve gotten feedback.', 120)],
+  u12: [say(301, people.jamiu, 'Creatives are ready for review', 2000)],
+};
+const memos = [
+  { id: 1, subject: 'Warning', content: 'Please stop leaving timers running overnight.', type: 'individual', recipients: [11], sender_id: 1, sender: people.ige, reads: [], responses: [], created_at: ago(30) },
+  { id: 2, subject: 'MISSED TASK DEADLINE', content: 'Several tasks missed their deadlines last week. Plan your day around your scheduled tasks.', type: 'general', recipients: [10, 11, 12, 13], sender_id: 1, sender: people.ige, reads: [{ user_id: 10, read_at: ago(1) }], responses: [{ id: 1, content: 'Noted, thank you.', created_at: ago(1), user: people.victor }], created_at: ago(70) },
+  { id: 3, subject: 'Design team update', content: 'New brand files are in the shared drive.', type: 'department', department: 'Design', recipients: [11], sender_id: 2, sender: people.titi, reads: [], responses: [], created_at: ago(90) },
+];
+
 function sampleProjects() {
   const day = 86400000;
   const p = (id: number, name: string, category: string, status: string, progress: number, endDays: number, idleDays = 0) => ({
@@ -254,6 +267,24 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
             }),
       });
     }
+    if (url === '/messages/general' || /^\/messages\/direct\/\d+$/.test(url)) {
+      const key = url === '/messages/general' ? 'general' : `u${url.split('/').pop()}`;
+      const thread = (threads[key] ??= []);
+      if (method === 'post') {
+        thread.push({ id: Date.now(), content: body.content, sender_id: viewerId, sender: { id: viewerId, first_name: viewerId >= 10 ? 'Victor' : 'Olubukola', last_name: viewerId >= 10 ? 'Adeleye' : 'Ige' }, created_at: new Date().toISOString() });
+      }
+      return ok(config, thread);
+    }
+    if (method === 'get' && url === '/messages/inbox') {
+      const last = (t: typeof chat) => (t.length ? { content: t.at(-1)!.content, sender: `${t.at(-1)!.sender.first_name} ${t.at(-1)!.sender.last_name}`, mine: t.at(-1)!.sender_id === viewerId, at: t.at(-1)!.created_at } : null);
+      return ok(config, {
+        general: { last: last(threads.general ?? []) },
+        projects: [{ id: 20, name: 'QueenbodySecret', last: last(chat) }, { id: 5, name: 'TopMart', last: null }],
+        direct: Object.keys(threads).filter((k) => k[0] === 'u').map((k) => ({ user_id: Number(k.slice(1)), last: last(threads[k]), unread: k === 'u11' ? 2 : 0 })),
+      });
+    }
+    if (method === 'get' && url === '/memos') return ok(config, memos);
+    if (method === 'get' && (m = url.match(/^\/memos\/(\d+)$/))) return ok(config, memos.find((x) => x.id === Number(m![1])) ?? fail(config, 404, {}));
     if (method === 'get' && url === '/leave') return ok(config, leave);
     if (method === 'put' && (m = url.match(/^\/leave\/(\d+)\/decide$/))) {
       const l = leave.find((x) => x.id === Number(m![1]));

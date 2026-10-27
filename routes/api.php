@@ -114,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/messages/project/{message}', [MessageController::class, 'deleteProjectMessage']);
 
     // Messages - Direct
+    Route::get('/messages/inbox', [MessageController::class, 'inbox']);
     Route::get('/messages/conversations', [MessageController::class, 'conversations']);
     Route::get('/messages/direct/{userId}', [MessageController::class, 'directMessages']);
     Route::post('/messages/direct/{userId}', [MessageController::class, 'sendDirectMessage']);

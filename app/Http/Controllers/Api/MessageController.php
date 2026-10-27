@@ -7,6 +7,7 @@ use App\Models\ProjectMessage;
 use App\Models\DirectMessage;
 use App\Models\GeneralChannelMessage;
 use App\Models\MessageReadReceipt;
+use App\Models\Project;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
@@ -100,10 +101,15 @@ class MessageController extends Controller
     // General channel
     public function generalMessages(Request $request)
     {
+        // The newest 100, oldest first. (Taking the first 100 by date showed
+        // the channel's oldest messages and hid everything newer.)
         $messages = GeneralChannelMessage::with('sender')
-            ->orderBy('created_at', 'asc')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(100)
-            ->get();
+            ->get()
+            ->reverse()
+            ->values();
 
         return response()->json($messages);
     }
@@ -143,6 +149,55 @@ class MessageController extends Controller
     }
 
     // Conversations list (for DM sidebar)
+    /**
+     * GET /messages/inbox — the Inbox conversation list (Inbox artboard):
+     * the general channel, the user's project chats and their direct
+     * messages, each with its last message, newest first.
+     */
+    public function inbox(Request $request)
+    {
+        $user = $request->user();
+        $preview = fn ($m) => $m ? [
+            'content' => $m->content,
+            'sender' => $m->sender ? trim("{$m->sender->first_name} {$m->sender->last_name}") : null,
+            'mine' => $m->sender_id === $user->id,
+            'at' => $m->created_at?->toIso8601String(),
+        ] : null;
+
+        $general = GeneralChannelMessage::with('sender')->latest('id')->first();
+
+        $projects = Project::visibleTo($user)->get(['id', 'name']);
+        $lastIds = ProjectMessage::whereIn('project_id', $projects->pluck('id'))
+            ->selectRaw('project_id, MAX(id) as id')->groupBy('project_id')->pluck('id', 'project_id');
+        $lastProject = ProjectMessage::with('sender')->whereIn('id', $lastIds->values())->get()->keyBy('project_id');
+
+        // One row per person the user has talked to: the latest message and
+        // how many of theirs are unread.
+        $latestDm = DirectMessage::selectRaw('MAX(id) as id, CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_id', [$user->id])
+            ->where(fn ($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
+            ->groupBy('other_id')
+            ->pluck('id', 'other_id');
+        $dmRows = DirectMessage::with('sender')->whereIn('id', $latestDm->values())->get()->keyBy('id');
+        $unread = DirectMessage::where('receiver_id', $user->id)->where('read', false)
+            ->selectRaw('sender_id, COUNT(*) as n')->groupBy('sender_id')->pluck('n', 'sender_id');
+
+        return response()->json([
+            'general' => ['last' => $preview($general)],
+            'projects' => $projects
+                ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'last' => $preview($lastProject->get($p->id))])
+                ->sortByDesc(fn ($p) => $p['last']['at'] ?? '')
+                ->values(),
+            'direct' => $latestDm
+                ->map(fn ($id, $otherId) => [
+                    'user_id' => (int) $otherId,
+                    'last' => $preview($dmRows->get($id)),
+                    'unread' => (int) ($unread[$otherId] ?? 0),
+                ])
+                ->sortByDesc(fn ($d) => $d['last']['at'] ?? '')
+                ->values(),
+        ]);
+    }
+
     public function conversations(Request $request)
     {
         $userId = $request->user()->id;

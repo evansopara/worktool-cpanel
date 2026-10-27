@@ -49,6 +49,7 @@
   --color-todo-tint: #ECEAE4;
   --color-brief-tint: #FFF6CC;
   --color-brief-track: #F1E3A0; /* session bar track inside the brief tint */
+  --color-bubble: #F2F0EB; /* other people's chat bubbles */
 
   /* Timer dot: running / stopped */
   --color-live: #1F9D57;

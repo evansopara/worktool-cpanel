@@ -108,6 +108,7 @@ type SectionDef = {
 // Rebuilt hub pages (spec §9 step 6).
 const HUBS = {
   people: { href: '/dashboard/people', roles: ['operations_manager', 'team_lead'], label: 'People' },
+  inbox: { href: '/dashboard/messages', roles: ALL, label: 'Inbox' },
 } satisfies Record<string, PageDef>;
 
 const S = {
@@ -115,7 +116,7 @@ const S = {
   projects: { key: 'projects', label: 'Projects', sub: '', pages: [PAGES.projects] },
   tasks: { key: 'tasks', label: 'Tasks', sub: '', pages: [PAGES.tasks] },
   myTasks: { key: 'tasks', label: 'My tasks', sub: '', pages: [PAGES.tasks] },
-  inbox: { key: 'inbox', label: 'Inbox', sub: '', pages: [PAGES.messages, PAGES.general, PAGES.memos] },
+  inbox: { key: 'inbox', label: 'Inbox', sub: '', pages: [PAGES.messages, PAGES.general, PAGES.memos], hub: HUBS.inbox },
   calendar: { key: 'calendar', label: 'Calendar', sub: 'Meetings and bookings', pages: [PAGES.bookings] },
   people: {
     key: 'people',

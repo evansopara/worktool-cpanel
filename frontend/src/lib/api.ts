@@ -105,6 +105,7 @@ export const messagesApi = {
     api.post(`/projects/${projectId}/messages`, { content, parent_id: parentId }),
   updateProjectMessage: (id: number, content: string) => api.put(`/messages/project/${id}`, { content }),
   deleteProjectMessage: (id: number) => api.delete(`/messages/project/${id}`),
+  inbox: () => api.get('/messages/inbox'),
   conversations: () => api.get('/messages/conversations'),
   directMessages: (userId: number) => api.get(`/messages/direct/${userId}`),
   sendDirect: (userId: number, content: string) => api.post(`/messages/direct/${userId}`, { content }),
