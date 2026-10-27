@@ -765,6 +765,12 @@ class SimpleController extends Controller
 
     public function reviewLinkRespond(Request $request, ReviewLink $reviewLink)
     {
+        // Only the reviewer it was sent to, or a Team Lead / Operations Manager.
+        $user = $request->user();
+        if ((int) $reviewLink->assigned_to !== $user->id && !in_array($user->role, ['operations_manager', 'team_lead'])) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'status' => 'required|in:approved,not_approved',
             'review_comment' => 'nullable|string',
