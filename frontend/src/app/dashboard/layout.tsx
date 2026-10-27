@@ -3,13 +3,25 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import { useQuery } from '@tanstack/react-query';
 import Sidebar from '@/components/layout/Sidebar';
+import { AppShell } from '@/components/shell/AppShell';
+import { notificationsApi } from '@/lib/api';
 import { Menu, Briefcase } from 'lucide-react';
 
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
+  // Clients keep the old layout until the client portal is designed (spec §10).
+  const redesigned = !!user && user.role !== 'client';
+
+  const { data: unread = 0 } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => notificationsApi.unreadCount().then((r) => Number(r.data?.count ?? 0)),
+    enabled: redesigned,
+    refetchInterval: 60_000,
+  });
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -37,6 +49,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) return null;
+
+  if (redesigned) {
+    return (
+      <AppShell user={user} unread={unread} onSignOut={logout}>
+        {children}
+      </AppShell>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

@@ -24,6 +24,13 @@
   --color-on-dark-2: #A8A49C;
   --color-dark-line: #3A3936;
 
+  /* Sidebar and mobile dock (on ink) */
+  --color-on-ink: #E6E3DC;
+  --color-nav: #D8D4CB;
+  --color-nav-dock: #C9C5BC;
+  --color-alert: #FF6B5E;
+  --shadow-dock: 0 12px 30px rgba(18, 18, 18, 0.28);
+
   /* Status: text colour + tint behind it */
   --color-missed: #C0362C;
   --color-missed-tint: #FBE7E4;

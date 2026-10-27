@@ -117,6 +117,14 @@ html.dark .text-purple-200 { color: #e9d5ff; }
   transition: opacity 0.15s ease;
 }
 #__wc-theme-toggle:hover { opacity: 1; }
+/* Below 1024px the new mobile dock sits where this button was; dark mode is
+   on the More screen there. On desktop it moves off the sidebar. */
+@media (max-width: 1023.98px) {
+  #__wc-theme-toggle { display: none; }
+}
+@media (min-width: 1024px) {
+  #__wc-theme-toggle { left: auto; right: 1rem; }
+}
 #__wc-theme-toggle:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
