@@ -646,7 +646,7 @@ class TaskController extends Controller
     public function deadlineRequests(Request $request)
     {
         $user = $request->user();
-        $query = DeadlineExtensionRequest::with(['task.project', 'requester', 'projectManager']);
+        $query = DeadlineExtensionRequest::with(['task.project', 'requester', 'projectManager', 'decider']);
 
         if ($user->role === 'project_manager') {
             $query->where('project_manager_id', $user->id);

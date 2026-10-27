@@ -192,6 +192,7 @@ export function TasksScreen({ user }: { user: User }) {
           extView
         ) : (
           <div className="flex flex-col gap-3">
+            <SearchField value={search} onChange={setSearch} placeholder={manager ? 'Search task or staff' : 'Search your tasks'} className="w-full flex-none sm:max-w-none" />
             {manager && (
               <>
                 <DateRange

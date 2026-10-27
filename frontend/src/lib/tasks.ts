@@ -63,9 +63,11 @@ export type ExtensionRequest = {
   approved_deadline: string | null;
   status: 'pending' | 'approved' | 'rejected';
   decision_reason: string | null;
+  decided_at?: string | null;
   created_at: string;
   task?: { id: number; title: string; deadline: string | null; project?: { id: number; name: string } | null } | null;
   requester?: { id: number; first_name: string; last_name: string } | null;
+  decider?: { id: number; first_name: string; last_name: string } | null;
 };
 
 /** GET /tasks/{id}: the full task plus panel extras. */
@@ -219,8 +221,39 @@ export function statusInfo(status: string): { label: string; tone: StatusTone } 
   return { label, tone };
 }
 
+/** Past the deadline the timer and Submit are locked until the deadline moves (the server enforces it too). */
+export function deadlinePassed(t: { status: string; deadline: string | null }): boolean {
+  return t.status !== 'completed' && !!t.deadline && new Date(t.deadline) <= new Date();
+}
+
+export const DEADLINE_PASSED = 'Deadline passed — ask for an extension to keep working.';
+
 export function isMissed(t: { status: string; deadline: string | null }): boolean {
   return t.status === 'deadline_missed' || (!!t.deadline && t.status !== 'completed' && t.status !== 'review' && new Date(t.deadline) < new Date());
+}
+
+/** Office hours used to work out an estimate from a task's dates: 8am–6pm, Monday to Friday. */
+export const WORK_DAY = { start: 8, end: 18, days: [1, 2, 3, 4, 5] };
+
+/** Minutes of office time between two moments (0 if the end isn't after the start). */
+export function workingMinutes(from: Date, to: Date): number {
+  if (!(to > from)) return 0;
+  let total = 0;
+  const day = new Date(from);
+  day.setHours(0, 0, 0, 0);
+  while (day < to) {
+    if (WORK_DAY.days.includes(day.getDay())) {
+      const open = new Date(day);
+      open.setHours(WORK_DAY.start, 0, 0, 0);
+      const close = new Date(day);
+      close.setHours(WORK_DAY.end, 0, 0, 0);
+      const a = Math.max(open.getTime(), from.getTime());
+      const b = Math.min(close.getTime(), to.getTime());
+      if (b > a) total += b - a;
+    }
+    day.setDate(day.getDate() + 1);
+  }
+  return Math.round(total / 60_000);
 }
 
 /** Roles that manage tasks; matches User::MANAGER_ROLES on the server. */

@@ -6,11 +6,11 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { FileText, Pause, Play } from 'lucide-react';
 import type { User } from '@/types';
 import { cn } from '@/lib/utils';
-import { DateRange, Pagination, ScheduleBoxes, ScheduleInline, SearchField, SegmentedFilter, StatusPill, type DateRangeValue } from '@/components/wc';
+import { DateRange, Pagination, ScheduleBoxes, SearchField, SegmentedFilter, StatusPill, type DateRangeValue } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
-import { fmtMinutes, fmtTime, fmtWhen, homeApi, isMissed, statusInfo, taskApi, type HomeData, type TaskListItem } from '@/lib/tasks';
+import { DEADLINE_PASSED, deadlinePassed, fmtMinutes, fmtTime, fmtWhen, homeApi, isMissed, statusInfo, taskApi, type HomeData, type TaskListItem } from '@/lib/tasks';
 import { LiveClock, TimerDot } from '@/components/task/LiveClock';
-import { toActionTask } from '@/components/task/TaskRows';
+import { StaffTaskTable, toActionTask } from '@/components/task/TaskRows';
 import { useTaskWorkspace } from '@/components/task/useTaskWorkspace';
 import { CardTitle, Greeting, MobileTopBar } from './parts';
 
@@ -104,7 +104,7 @@ export function StaffHome({ user }: { user: User }) {
         </div>
 
         {/* My tasks */}
-        <section aria-labelledby="h-mine" className="flex flex-col gap-3 lg:rounded-card-lg lg:bg-surface lg:p-7">
+        <section aria-labelledby="h-mine" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3 lg:pb-1.5">
             <CardTitle id="h-mine" small>
               <span className="lg:text-[26px]">My tasks</span>
@@ -113,12 +113,11 @@ export function StaffHome({ user }: { user: User }) {
               {total ? `${first}–${Math.min(page * 10, total)} of ${total}` : ''}
             </span>
             <div className="ml-auto hidden flex-wrap items-center gap-3 lg:flex">
-              <div className="rounded-full bg-stone p-1">
+              <div className="rounded-full bg-surface p-1">
                 <SegmentedFilter variant="inline" label="Filter tasks" value={filter} onChange={pickFilter} items={filterItems} />
               </div>
-              <SearchField on="white" value={search} onChange={setSearch} placeholder="Search tasks" className="h-[46px] min-w-[220px] flex-none" />
+              <SearchField value={search} onChange={setSearch} placeholder="Search tasks" className="h-[46px] min-w-[220px] flex-none" />
               <DateRange
-                on="white"
                 value={range}
                 onChange={(r) => {
                   setRange(r);
@@ -143,21 +142,17 @@ export function StaffHome({ user }: { user: User }) {
             />
           </div>
 
-          {/* Desktop rows */}
-          <div aria-hidden="true" className="hidden flex-wrap gap-x-5 gap-y-2.5 px-1 pb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3 lg:flex">
-            <span className="flex-[3_1_240px]">Task</span>
-            <span className="flex-[0_0_130px]">Status</span>
-            <span className="flex-[0_0_96px]">Time</span>
-            <span className="flex-[2_1_230px]">Schedule</span>
-            <span className="flex-[0_0_200px] text-right">Action</span>
+          {/* Desktop: the same table as the Tasks page */}
+          <div className="hidden lg:block">
+            <StaffTaskTable
+              tasks={tasks}
+              since={list.dataUpdatedAt}
+              actions={ws.actions}
+              onOpen={ws.openPanel}
+              onRequestExtension={ws.requestExtension}
+              footer={<Pagination page={page} total={total} onPageChange={setPage} />}
+            />
           </div>
-          <ul className="m-0 hidden list-none flex-col p-0 lg:flex">
-            {tasks.length === 0 && <li className="border-t border-line px-1 py-8 text-center text-sm text-ink-3">{list.isLoading ? 'Loading…' : 'No tasks here.'}</li>}
-            {tasks.map((t) => (
-              <StaffRow key={t.id} t={t} since={list.dataUpdatedAt} ws={ws} />
-            ))}
-          </ul>
-          {total > 0 && <Pagination className="hidden border-t border-line pt-3.5 lg:flex" page={page} total={total} onPageChange={setPage} />}
 
           {/* Mobile rows */}
           <div className="flex flex-col overflow-hidden rounded-[22px] bg-surface lg:hidden">
@@ -241,7 +236,8 @@ function CurrentTask({ task: t, loading, since, ws }: { task: TaskListItem | nul
         </span>
         <button
           type="button"
-          disabled={ws.actions.busy === t.id || !!locked}
+          disabled={ws.actions.busy === t.id || !!locked || deadlinePassed(t)}
+          title={deadlinePassed(t) ? DEADLINE_PASSED : undefined}
           onClick={() => (running ? ws.actions.stop(a) : ws.actions.start(a))}
           aria-pressed={running}
           className={cn(
@@ -254,7 +250,8 @@ function CurrentTask({ task: t, loading, since, ws }: { task: TaskListItem | nul
         </button>
         <button
           type="button"
-          disabled={ws.actions.busy === t.id}
+          disabled={ws.actions.busy === t.id || deadlinePassed(t)}
+          title={deadlinePassed(t) ? DEADLINE_PASSED : undefined}
           onClick={() => ws.actions.submit(a)}
           className="h-10 cursor-pointer rounded-full border border-dark-line bg-transparent px-3.5 font-ui text-[13.5px] font-semibold text-white lg:px-4 lg:text-sm outline-none hover:bg-dark-1 focus-visible:ring-2 focus-visible:ring-yellow disabled:opacity-50"
         >
@@ -276,7 +273,7 @@ function CurrentTask({ task: t, loading, since, ws }: { task: TaskListItem | nul
           <span className="shrink-0 text-[12.5px] font-semibold underline">Read</span>
         </button>
       )}
-      {t.pending_extension && <p className="m-0 text-[12.5px] font-semibold text-yellow">Extension requested — you can keep working while it’s decided.</p>}
+      {t.pending_extension && <p className="m-0 text-[12.5px] font-semibold text-yellow">{deadlinePassed(t) ? 'Extension requested — the timer unlocks if it’s approved.' : 'Extension requested — you can keep working while it’s decided.'}</p>}
     </section>
   );
 }
@@ -299,67 +296,5 @@ function ExtensionCard({ ext }: { ext: HomeData['extension'] | null }) {
         <p className="m-0 text-sm text-ink-3">You haven’t asked for more time on any task.</p>
       )}
     </section>
-  );
-}
-
-function StaffRow({ t, since, ws }: { t: TaskListItem; since: number; ws: Workspace }) {
-  const s = statusInfo(t.status);
-  const a = toActionTask(t);
-  const running = t.is_timer_running;
-  const missedNoRequest = t.status === 'deadline_missed' && !t.pending_extension;
-  const btn = 'inline-flex h-[38px] cursor-pointer items-center gap-1.5 rounded-full border-0 px-3.5 font-ui text-[13px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:opacity-50';
-
-  return (
-    <li className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line px-1 py-[13px]">
-      <span className="flex min-w-0 flex-[3_1_240px] flex-col gap-0.5">
-        <button type="button" onClick={() => ws.openPanel(t.id)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-ui text-[15px] font-bold text-ink outline-none hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink">
-          {t.title}
-        </button>
-        <span className="text-[12.5px] text-ink-3">
-          {t.project?.name} · est. {fmtMinutes(t.estimate_minutes)}
-        </span>
-      </span>
-      <span className="flex-[0_0_130px]">
-        <StatusPill tone={s.tone}>{s.label}</StatusPill>
-      </span>
-      <span className="flex flex-[0_0_96px] items-center gap-[7px] text-ink-2">
-        <TimerDot running={running} className={cn('size-[7px]', !running && 'opacity-0')} />
-        <LiveClock seconds={t.logged_seconds} running={running} since={since} className="text-[13.5px]" />
-      </span>
-      <ScheduleInline className="flex-[2_1_230px]" start={fmtWhen(t.start_date)} deadline={fmtWhen(t.deadline)} missed={isMissed(t)} />
-      <span className="flex flex-[0_0_200px] justify-end gap-1.5">
-        {t.status === 'completed' ? (
-          <span className="text-[13px] font-semibold text-done">Completed</span>
-        ) : (
-          <>
-            {missedNoRequest && (
-              <button type="button" onClick={() => ws.requestExtension(t.id)} className={cn(btn, 'bg-stone font-semibold text-ink')}>
-                Request extension
-              </button>
-            )}
-            <button
-              type="button"
-              disabled={ws.actions.busy === t.id}
-              aria-label={`${running ? 'Stop' : 'Start'} timer for ${t.title}`}
-              onClick={() => (running ? ws.actions.stop(a) : ws.actions.start(a))}
-              className={cn(btn, running ? 'bg-ink text-white' : 'bg-done-tint text-done')}
-            >
-              {running ? <Pause className="size-[11px] fill-current" aria-hidden="true" /> : <Play className="size-[11px] fill-current" aria-hidden="true" />}
-              {running ? 'Stop' : 'Start'}
-            </button>
-            {!missedNoRequest && (
-              <button type="button" disabled={ws.actions.busy === t.id} onClick={() => ws.actions.submit(a)} className={cn(btn, 'bg-yellow text-ink')}>
-                Submit
-              </button>
-            )}
-          </>
-        )}
-      </span>
-      {(t.pending_extension || t.status === 'review') && (
-        <span className={cn('flex-[1_0_100%] text-[12.5px] font-semibold', t.pending_extension ? 'text-pending' : 'text-review')}>
-          {t.pending_extension ? 'Extension requested — you can keep working while it’s decided.' : 'Waiting for review. You can still restart the timer or resubmit.'}
-        </span>
-      )}
-    </li>
   );
 }

@@ -6,7 +6,7 @@ import { FileText, Pause, Pencil, Play, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Avatar, Drawer, DrawerClose, StatusPill, Tabs } from '@/components/wc';
-import { errorText, fmtMinutes, fmtWhen, personName, statusInfo, taskApi, type HistoryFilter, type TaskDetail } from '@/lib/tasks';
+import { DEADLINE_PASSED, deadlinePassed, errorText, fmtMinutes, fmtWhen, personName, statusInfo, taskApi, type HistoryFilter, type TaskDetail } from '@/lib/tasks';
 import { LiveClock } from './LiveClock';
 import { HistoryFilters, HistorySummaryTiles, HistoryTimeline } from './TaskHistory';
 import type { useTaskActions } from './useTaskActions';
@@ -166,14 +166,15 @@ function TaskPanel({
             <span className="flex gap-2">
               <button
                 type="button"
-                disabled={actions.busy === t.id}
+                disabled={actions.busy === t.id || deadlinePassed(t)}
+                title={deadlinePassed(t) ? DEADLINE_PASSED : undefined}
                 onClick={() => (t.is_timer_running ? actions.stop(actionTask) : actions.start(actionTask))}
                 className={pill(t.is_timer_running ? 'bg-ink text-white' : 'bg-done-tint text-done')}
               >
                 {t.is_timer_running ? <Pause className="size-3 fill-current" aria-hidden="true" /> : <Play className="size-3 fill-current" aria-hidden="true" />}
                 {t.is_timer_running ? 'Stop' : 'Start'}
               </button>
-              <button type="button" disabled={actions.busy === t.id} onClick={() => actions.submit(actionTask)} className={pill('bg-yellow font-bold text-ink')}>
+              <button type="button" disabled={actions.busy === t.id || deadlinePassed(t)} title={deadlinePassed(t) ? DEADLINE_PASSED : undefined} onClick={() => actions.submit(actionTask)} className={pill('bg-yellow font-bold text-ink')}>
                 Submit
               </button>
             </span>

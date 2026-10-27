@@ -6,15 +6,16 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Check, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { User } from '@/types';
 import { cn } from '@/lib/utils';
-import { Avatar, Button, DateRange, IconButton, Pagination, ScheduleBoxes, SearchField, SegmentedFilter, type DateRangeValue } from '@/components/wc';
+import { Button, DateRange, IconButton, Pagination, SearchField, SegmentedFilter, type DateRangeValue } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
-import { fmtMinutes, fmtWhen, homeApi, isMissed, taskApi, type HomeData, type TaskListItem } from '@/lib/tasks';
+import { fmtWhen, homeApi, isMissed, taskApi, type HomeData, type TaskListItem } from '@/lib/tasks';
 import { LiveClock } from '@/components/task/LiveClock';
+import { ManagerTaskTable } from '@/components/task/TaskRows';
 import { useTaskWorkspace } from '@/components/task/useTaskWorkspace';
 import { CardTitle, Greeting, MobileTopBar } from './parts';
 
 // Manager Home (Main / MHome artboards, spec §6): Needs you, task status,
-// project pipeline and My tasks.
+// project pipeline and every task (same table as the Tasks page).
 
 const STATUS = [
   { key: 'in_progress', label: 'In progress', dot: 'bg-pending-line' },
@@ -50,7 +51,8 @@ export function ManagerHome({ user }: { user: User }) {
     return () => clearTimeout(id);
   }, [search]);
 
-  const params = { tab: 'mine' as const, state, q, from: range.from, to: range.to, page };
+  // Managers see every task, as on the Tasks page.
+  const params = { tab: 'all' as const, state, q, from: range.from, to: range.to, page };
   const list = useQuery({ queryKey: ['tasks', 'home', params], queryFn: () => taskApi.list(params), placeholderData: keepPreviousData, refetchInterval: 30_000 });
   const tasks = list.data?.data ?? [];
   const total = list.data?.meta.total ?? 0;
@@ -82,17 +84,17 @@ export function ManagerHome({ user }: { user: User }) {
           <Pipeline pipeline={d?.pipeline} />
         </div>
 
-        {/* My tasks */}
-        <section aria-labelledby="h-mine" className="flex flex-col gap-2.5 lg:gap-[18px] lg:rounded-[28px] lg:bg-surface lg:p-7">
+        {/* Tasks */}
+        <section aria-labelledby="h-mine" className="flex flex-col gap-2.5 lg:gap-[18px]">
           <div className="flex flex-wrap items-center gap-3 px-0.5 pt-1.5 lg:p-0">
             <h2 id="h-mine" className="m-0 mr-auto font-display text-[22px] font-bold tracking-[-0.02em] lg:text-[26px]">
-              My tasks
+              Tasks
             </h2>
             <Link href="/dashboard/tasks" className="py-2.5 text-sm font-semibold text-ink lg:hidden">
               See all
             </Link>
             <div className="hidden flex-wrap items-center gap-3 lg:flex">
-              <div className="rounded-full bg-stone p-1">
+              <div className="rounded-full bg-surface p-1">
                 <SegmentedFilter
                   variant="inline"
                   label="Task status"
@@ -107,9 +109,8 @@ export function ManagerHome({ user }: { user: User }) {
                   ]}
                 />
               </div>
-              <SearchField on="white" value={search} onChange={setSearch} placeholder="Search task or staff" className="h-[46px] min-w-[220px] flex-none" />
+              <SearchField value={search} onChange={setSearch} placeholder="Search task or staff" className="h-[46px] min-w-[220px] flex-none" />
               <DateRange
-                on="white"
                 value={range}
                 onChange={(r) => {
                   setRange(r);
@@ -120,42 +121,17 @@ export function ManagerHome({ user }: { user: User }) {
             </div>
           </div>
 
-          {/* Desktop rows */}
-          <ul className="m-0 hidden list-none flex-col p-0 lg:flex">
-            {tasks.length === 0 && <li className="border-t border-line px-1 py-8 text-center text-sm text-ink-3">{list.isLoading ? 'Loading…' : 'No tasks here.'}</li>}
-            {tasks.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line px-1 py-4">
-                <span className="flex min-w-0 flex-[3_1_240px] items-center gap-3.5">
-                  <span className={cn('size-3 shrink-0 rounded-full', rowDot(t))} />
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <button type="button" onClick={() => ws.openPanel(t.id)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-ui text-base font-bold text-ink outline-none hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink">
-                      {t.title}
-                    </button>
-                    <span className="text-[13px] text-ink-3">
-                      {t.project?.name}
-                      {t.assigned_by && ` · by ${t.assigned_by.name}`}
-                    </span>
-                  </span>
-                </span>
-                <span className="flex flex-[1.4_1_150px] items-center gap-2.5">
-                  <Avatar name={t.assignee?.name ?? '?'} tone="stone" className="size-[30px] text-[11.5px]" />
-                  <span className="text-sm font-semibold">{t.assignee?.name ?? 'Unassigned'}</span>
-                </span>
-                <LiveClock seconds={t.logged_seconds} running={t.is_timer_running} since={list.dataUpdatedAt} className="flex-[1_1_90px] text-sm text-ink-2" />
-                <ScheduleBoxes className="flex-[2.2_1_260px]" start={fmtWhen(t.start_date)} deadline={fmtWhen(t.deadline)} missed={isMissed(t)} />
-                <span className="flex-[0_0_64px] text-right text-[13.5px] font-semibold text-ink-2">{fmtMinutes(t.estimate_minutes)}</span>
-                <span className="flex shrink-0 gap-1.5">
-                  <IconButton aria-label={`Edit ${t.title}`} className="size-[42px]" onClick={() => ws.edit(t.id)}>
-                    <Pencil strokeWidth={2} aria-hidden="true" />
-                  </IconButton>
-                  <IconButton variant="danger" aria-label={`Delete ${t.title}`} className="size-[42px]" onClick={() => ws.onDelete(t)}>
-                    <Trash2 strokeWidth={2} aria-hidden="true" />
-                  </IconButton>
-                </span>
-              </li>
-            ))}
-          </ul>
-          {total > 0 && <Pagination className="hidden border-t border-line pt-3.5 lg:flex" page={page} total={total} onPageChange={setPage} />}
+          {/* Desktop: the same table as the Tasks page */}
+          <div className="hidden lg:block">
+            <ManagerTaskTable
+              tasks={tasks}
+              since={list.dataUpdatedAt}
+              onOpen={ws.openPanel}
+              onEdit={ws.edit}
+              onDelete={ws.onDelete}
+              footer={<Pagination page={page} total={total} onPageChange={setPage} />}
+            />
+          </div>
 
           {/* Mobile rows: the first few, "See all" opens Tasks */}
           <div className="flex flex-col gap-2.5 lg:hidden">
