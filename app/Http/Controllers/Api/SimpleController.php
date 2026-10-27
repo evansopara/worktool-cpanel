@@ -190,7 +190,7 @@ class SimpleController extends Controller
         $user = $request->user();
         $query = TechnicalSupportRequest::with(['requester', 'assignedTo']);
 
-        if (in_array($user->role, ['staff', 'intern'])) {
+        if (!self::managesSupport($user)) {
             $query->where('requester_id', $user->id);
         }
 
@@ -228,8 +228,22 @@ class SimpleController extends Controller
         return response()->json($req, 201);
     }
 
+    /**
+     * Who works the support queue (the menu calls it "Technical management"):
+     * technical support staff and every manager role. Everyone else only
+     * sees and follows their own requests.
+     */
+    private static function managesSupport(User $user): bool
+    {
+        return $user->isManager() || self::isTechSupport($user);
+    }
+
     public function supportUpdate(Request $request, TechnicalSupportRequest $support)
     {
+        if (!self::managesSupport($request->user())) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'status' => 'sometimes|string',
             'assigned_to_id' => 'nullable|integer|exists:users,id',

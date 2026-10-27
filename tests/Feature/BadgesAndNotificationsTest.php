@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesTaskTables;
@@ -22,6 +23,8 @@ class BadgesAndNotificationsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Mail::fake();
+        config(['services.webpush.public_key' => null, 'services.webpush.private_key' => null]);
         $this->createTaskTables();
         Schema::table('users', fn (Blueprint $t) => $t->string('specialization')->nullable());
         Schema::create('direct_messages', function (Blueprint $t) {
@@ -49,13 +52,26 @@ class BadgesAndNotificationsTest extends TestCase
             $t->timestamp('read_at')->nullable();
             $t->timestamps();
         });
-        foreach (['leave_applications', 'staff_complaints', 'complaints', 'technical_support_requests'] as $table) {
+        foreach (['leave_applications', 'staff_complaints', 'complaints'] as $table) {
             Schema::create($table, function (Blueprint $t) {
                 $t->id();
                 $t->string('status')->default('pending');
                 $t->timestamps();
             });
         }
+        Schema::create('technical_support_requests', function (Blueprint $t) {
+            $t->id();
+            $t->string('title')->default('Help');
+            $t->text('description')->nullable();
+            $t->unsignedBigInteger('task_id')->nullable();
+            $t->unsignedBigInteger('requester_id')->nullable();
+            $t->unsignedBigInteger('assigned_to_id')->nullable();
+            $t->string('status')->default('open');
+            $t->string('priority')->nullable();
+            $t->text('resolution')->nullable();
+            $t->timestamp('resolved_at')->nullable();
+            $t->timestamps();
+        });
         Schema::create('staff_queries', function (Blueprint $t) {
             $t->id();
             $t->unsignedBigInteger('assigned_to');
@@ -135,5 +151,22 @@ class BadgesAndNotificationsTest extends TestCase
         Sanctum::actingAs($this->lead);
         $this->postJson("/api/review-links/{$link}/respond", ['status' => 'approved'])->assertOk();
         $this->assertSame('approved', DB::table('review_links')->value('status'));
+    }
+    public function test_technical_support_staff_work_the_whole_queue_others_only_their_own(): void
+    {
+        $tech = User::forceCreate(['username' => 'tech', 'first_name' => 'Tech', 'role' => 'staff', 'specialization' => 'technical_support', 'password' => 'x']);
+        $other = User::forceCreate(['username' => 'ashe', 'first_name' => 'Ashe', 'role' => 'staff', 'password' => 'x']);
+        $mine = DB::table('technical_support_requests')->insertGetId(['title' => 'VPN', 'requester_id' => $this->staff->id]);
+        DB::table('technical_support_requests')->insert(['title' => 'Laptop', 'requester_id' => $other->id]);
+
+        Sanctum::actingAs($this->staff);
+        $this->getJson('/api/support')->assertOk()->assertJsonCount(1);
+        $this->putJson("/api/support/{$mine}", ['status' => 'resolved'])->assertForbidden();
+
+        Sanctum::actingAs($tech);
+        $this->getJson('/api/support')->assertOk()->assertJsonCount(2);
+        $this->getJson('/api/badges')->assertJson(['support' => 2]);
+        $this->putJson("/api/support/{$mine}", ['status' => 'resolved'])->assertOk();
+        $this->assertSame('resolved', DB::table('technical_support_requests')->where('id', $mine)->value('status'));
     }
 }
