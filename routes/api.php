@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TaskExportController;
+use App\Http\Controllers\Api\TaskHistoryController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
@@ -23,7 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/tasks/{task}/submit', [\App\Http\Controllers\Api\TaskController::class, 'submit']);
+    Route::post('/tasks/{task}/submit', [TaskController::class, 'submit']);
 
     // Admin: User management
     Route::get('/users', [AuthController::class, 'users']);
@@ -68,17 +70,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sentiments', [SimpleController::class, 'sentimentIndex']);
     Route::post('/sentiments', [SimpleController::class, 'sentimentStore']);
 
-    // Tasks
+    // Tasks (rules: design/HANDOFF_SPEC.md §8)
     Route::get('/tasks', [TaskController::class, 'index']);
+    Route::get('/tasks/export', TaskExportController::class);
     Route::post('/tasks', [TaskController::class, 'store']);
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::patch('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+    Route::get('/tasks/{task}/events', [TaskHistoryController::class, 'index']);
 
-    // Task timer
+    // Task timer and review
     Route::post('/tasks/{task}/timer/start', [TaskController::class, 'startTimer']);
     Route::post('/tasks/{task}/timer/stop', [TaskController::class, 'stopTimer']);
-    Route::post('/tasks/{task}/estimate', [TaskController::class, 'reviseEstimate']);
+    Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
+    Route::post('/tasks/{task}/send-back', [TaskController::class, 'sendBack']);
+    Route::post('/tasks/{task}/instructions/read', [TaskController::class, 'instructionsRead']);
+
+    // Task requests: more time on the deadline or the estimate
+    Route::post('/tasks/{task}/extension-requests', [TaskController::class, 'storeExtensionRequest']);
+    Route::patch('/tasks/{task}/extension-requests/{extensionRequest}', [TaskController::class, 'decideExtensionRequest']);
+    Route::post('/tasks/{task}/estimate-requests', [TaskController::class, 'storeEstimateRequest']);
+    Route::patch('/tasks/{task}/estimate-requests/{estimateRequest}', [TaskController::class, 'decideEstimateRequest']);
 
     // Task iterations
     Route::get('/tasks/{task}/iterations', [TaskController::class, 'iterations']);
