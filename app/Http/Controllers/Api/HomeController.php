@@ -103,7 +103,7 @@ class HomeController extends Controller
                     'count' => $complaints->count(),
                     'label' => $complaints->count() === 1 ? 'Client complaint pending' : 'Client complaints pending',
                     'detail' => $this->numbers($complaints),
-                    'href' => '/dashboard/complaints',
+                    'href' => '/dashboard/clients',
                 ];
             }
 

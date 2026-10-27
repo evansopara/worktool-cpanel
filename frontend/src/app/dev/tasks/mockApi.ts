@@ -285,6 +285,22 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
     }
     if (method === 'get' && url === '/memos') return ok(config, memos);
     if (method === 'get' && (m = url.match(/^\/memos\/(\d+)$/))) return ok(config, memos.find((x) => x.id === Number(m![1])) ?? fail(config, 404, {}));
+    if (method === 'get' && url === '/sentiments') {
+      const s = (id: number, sentiment: string, flagged: boolean, feedback: string, daysAgo: number, who: { first_name: string; last_name: string }) => ({ id, sentiment, is_flagged: flagged, feedback, recorded_at: ago(daysAgo), client: who });
+      return ok(config, [
+        s(1, 'satisfied', false, 'The new homepage looks great, thank you!', 0.2, { first_name: 'Temitope', last_name: 'Oyewole' }),
+        s(2, 'dissatisfied', true, 'Still waiting on the SMTP fix from last week.', 0.5, { first_name: 'Gloria', last_name: 'Esoimeme' }),
+        s(3, 'satisfied', false, '', 0.8, { first_name: 'Adan', last_name: 'Idet' }),
+        s(4, 'satisfied', false, 'Quick turnaround.', 9, { first_name: 'Oladoyin', last_name: 'Taiwo' }),
+      ]);
+    }
+    if (method === 'get' && url === '/complaints') {
+      return ok(config, [
+        { id: 2, name: 'Temitayo Matthew Akintunde', email: 'akinstemi123@gmail.com', product_manager_name: 'Linda', developer_name: 'Hydee', detailed_explanation: 'Slow timer', status: 'pending', created_at: ago(170) },
+        { id: 1, name: 'Adeleke Toyin', email: 'adelekedewunmi@gmail.com', product_manager_name: 'saka maria', detailed_explanation: 'Pages load slowly on mobile.', status: 'pending', created_at: ago(171) },
+        { id: 3, name: 'Adan Idet', email: 'adan@example.com', detailed_explanation: 'Logo was wrong colour.', status: 'resolved', review_comments: 'Fixed and re-sent.', created_at: ago(200) },
+      ]);
+    }
     if (method === 'get' && url === '/leave') return ok(config, leave);
     if (method === 'put' && (m = url.match(/^\/leave\/(\d+)\/decide$/))) {
       const l = leave.find((x) => x.id === Number(m![1]));

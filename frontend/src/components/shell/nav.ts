@@ -101,14 +101,19 @@ type SectionDef = {
   /** One line under the label on the mobile More tiles */
   sub: string;
   pages: PageDef[];
-  /** A rebuilt hub page that replaces `pages` for the roles that can open it. */
+  /**
+   * A rebuilt hub page shown instead of the old pages it covers, for the
+   * roles that can open it. `hubCovers` lists those pages (default: all).
+   */
   hub?: PageDef;
+  hubCovers?: PageDef[];
 };
 
 // Rebuilt hub pages (spec §9 step 6).
 const HUBS = {
   people: { href: '/dashboard/people', roles: ['operations_manager', 'team_lead'], label: 'People' },
   inbox: { href: '/dashboard/messages', roles: ALL, label: 'Inbox' },
+  clients: { href: '/dashboard/clients', roles: ['operations_manager', 'team_lead'], label: 'Clients' },
 } satisfies Record<string, PageDef>;
 
 const S = {
@@ -130,6 +135,9 @@ const S = {
     label: 'Clients',
     sub: 'Sentiment and complaints',
     pages: [PAGES.sentiment, PAGES.clientComplaints, PAGES.reviewLinks],
+    // Review links aren't in the design; Team Leads keep that page as a tab.
+    hub: HUBS.clients,
+    hubCovers: [PAGES.sentiment, PAGES.clientComplaints],
   },
   insights: { key: 'insights', label: 'Insights', sub: 'KPI report', pages: [PAGES.kpi] },
   library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes] },
@@ -191,7 +199,8 @@ export function buildNav(user: User): NavGroup[] {
       label: g.label,
       sections: g.sections
         .map((s): NavSection | null => {
-          const defs = s.hub && s.hub.roles.includes(role) ? [s.hub] : s.pages;
+          const covered = s.hubCovers ?? s.pages;
+          const defs = s.hub && s.hub.roles.includes(role) ? [s.hub, ...s.pages.filter((p) => !covered.includes(p))] : s.pages;
           const pages = defs
             .filter((p) => p.roles.includes(role))
             .map((p) => ({ href: p.href, label: typeof p.label === 'function' ? p.label(user) : p.label }));
