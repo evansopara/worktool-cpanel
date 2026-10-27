@@ -32,7 +32,25 @@ export type TaskPage = { data: TaskListItem[]; meta: { total: number; page: numb
 
 export type ManagerTab = 'all' | 'mine';
 export type StaffTab = 'active' | 'completed';
-export type ListParams = { tab: ManagerTab | StaffTab; q?: string; from?: string; to?: string; status?: string; page: number };
+export type ListParams = {
+  tab: ManagerTab | StaffTab | 'all';
+  /** Home's Active / Completed toggle */
+  state?: 'active' | 'completed';
+  q?: string;
+  from?: string;
+  to?: string;
+  status?: string;
+  page: number;
+};
+
+/** GET /home (app/Http/Controllers/Api/HomeController.php) */
+export type HomeData = {
+  status_counts: Record<'in_progress' | 'pending' | 'todo' | 'review' | 'technical_support' | 'deadline_missed', number>;
+  needs?: { key: string; count: number; label: string; detail: string; href: string }[];
+  pipeline?: Record<'active' | 'pending' | 'completed', { total: number; items: { id: number; name: string; category: string; flag?: string | null }[] }>;
+  current?: TaskListItem | null;
+  extension?: { id: number; task_title: string; from: string | null; requested: string | null; status: 'pending' | 'approved' | 'declined' } | null;
+};
 
 export type ExtensionRequest = {
   id: number;
@@ -122,6 +140,10 @@ export function errorText(err: unknown, fallback: string): string {
   }
   return fallback;
 }
+
+export const homeApi = {
+  get: () => api.get<HomeData>('/home').then((r) => r.data),
+};
 
 export const taskApi = {
   list: (p: ListParams) =>

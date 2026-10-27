@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskExportController;
 use App\Http\Controllers\Api\TaskHistoryController;
@@ -69,6 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Client sentiment
     Route::get('/sentiments', [SimpleController::class, 'sentimentIndex']);
     Route::post('/sentiments', [SimpleController::class, 'sentimentStore']);
+
+    // Home page summary (counts, "Needs you", pipeline, current task)
+    Route::get('/home', [HomeController::class, 'index']);
 
     // Tasks (rules: design/HANDOFF_SPEC.md §8)
     Route::get('/tasks', [TaskController::class, 'index']);

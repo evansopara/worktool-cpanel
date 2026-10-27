@@ -43,6 +43,7 @@
   --color-done-tint: #E2F2E7;
   --color-review: #1E4797;
   --color-review-tint: #DCE6F7;
+  --color-review-bar: #2457C5; /* "In review" in Home's status bar and dots */
   --color-todo: #4D4A44;
   --color-todo-tint: #ECEAE4;
   --color-brief-tint: #FFF6CC;

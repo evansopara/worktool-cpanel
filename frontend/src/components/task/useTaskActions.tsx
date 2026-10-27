@@ -37,6 +37,7 @@ export function useTaskActions() {
 
   const refresh = (id: number) => {
     qc.invalidateQueries({ queryKey: ['tasks'] });
+    qc.invalidateQueries({ queryKey: ['home'] });
     qc.invalidateQueries({ queryKey: ['task', id] });
     qc.invalidateQueries({ queryKey: ['task-events', id] });
   };

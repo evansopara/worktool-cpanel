@@ -1,8 +1,8 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { User } from '@/types';
@@ -13,21 +13,15 @@ import {
   ExportMenu,
   Pagination,
   SearchField,
-  Sheet,
-  SheetActions,
-  SheetDescription,
-  SheetTitle,
   Tabs,
   type DateRangeValue,
   type ExportFormat,
 } from '@/components/wc';
 import { PageBody, PageHeader } from '@/components/shell/PageHeader';
-import { errorText, MANAGER_ROLES, taskApi, type ListParams, type ManagerTab, type StaffTab, type TaskDetail, type TaskListItem } from '@/lib/tasks';
-import { ExtensionBanner, ManagerExtensions, RequestExtensionSheet, StaffExtensions, useExtensionRequests } from './ExtensionRequests';
+import { errorText, taskApi, type ListParams, type ManagerTab, type StaffTab, type TaskListItem } from '@/lib/tasks';
+import { ExtensionBanner, ManagerExtensions, StaffExtensions, useExtensionRequests } from './ExtensionRequests';
 import { ManagerTaskCard, ManagerTaskTable, StaffTaskCard, StaffTaskTable } from './TaskRows';
-import { TaskForm } from './TaskForm';
-import { TaskPanelDrawer } from './TaskPanel';
-import { useTaskActions } from './useTaskActions';
+import { useTaskWorkspace } from './useTaskWorkspace';
 import { exportTasks } from './exportTasks';
 
 // Tasks (managers) and My tasks (staff): Tasks / StaffTasks / MTasks /
@@ -44,31 +38,16 @@ const STATUS_CHIPS = [
 
 /** Needs a <Suspense> parent (it reads the URL's ?task=). */
 export function TasksScreen({ user }: { user: User }) {
-  const manager = MANAGER_ROLES.includes(user.role);
-  const qc = useQueryClient();
-  const router = useRouter();
-  const pathname = usePathname();
+  const ws = useTaskWorkspace(user);
+  const { manager, actions, openPanel, edit, onDelete, newTask } = ws;
   const params = useSearchParams();
-
-  const [tab, setTab] = useState<Tab>(manager ? 'all' : 'active');
+  // ?view=ext opens the Extension requests tab (Home's "Needs you" links here).
+  const [tab, setTab] = useState<Tab>(params.get('view') === 'ext' ? 'ext' : manager ? 'all' : 'active');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [range, setRange] = useState<DateRangeValue>({ from: '', to: '' });
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [form, setForm] = useState<{ open: boolean; task: TaskDetail | null }>({ open: false, task: null });
-  const [deleting, setDeleting] = useState<{ id: number; title: string } | null>(null);
-  const [asking, setAsking] = useState<number | null>(null);
-
-  // The open task panel lives in the URL (?task=ID) so it can be linked to.
-  const panelId = params.get('task') ? Number(params.get('task')) : null;
-  const openPanel = (id: number | null) => {
-    const next = new URLSearchParams(params.toString());
-    if (id === null) next.delete('task');
-    else next.set('task', String(id));
-    router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
-  };
-
   // Search runs on the server, a moment after typing stops.
   useEffect(() => {
     const id = setTimeout(() => {
@@ -100,28 +79,6 @@ export function TasksScreen({ user }: { user: User }) {
   const requests = extensions.data ?? [];
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
-  const actions = useTaskActions();
-
-  const remove = useMutation({
-    mutationFn: (id: number) => taskApi.remove(id),
-    onSuccess: (_, id) => {
-      toast.success('Task deleted');
-      qc.invalidateQueries({ queryKey: ['tasks'] });
-      if (panelId === id) openPanel(null);
-      setDeleting(null);
-    },
-    onError: (err) => toast.error(errorText(err, 'Could not delete the task.')),
-  });
-
-  const edit = async (id: number) => {
-    try {
-      const task = await qc.fetchQuery({ queryKey: ['task', id], queryFn: () => taskApi.get(id) });
-      setForm({ open: true, task });
-    } catch (err) {
-      toast.error(errorText(err, 'Could not open the task.'));
-    }
-  };
-
   const changeTab = (t: Tab) => {
     setTab(t);
     setPage(1);
@@ -139,7 +96,6 @@ export function TasksScreen({ user }: { user: User }) {
   const tasks: TaskListItem[] = list.data?.data ?? [];
   const total = list.data?.meta.total ?? 0;
   const since = list.dataUpdatedAt;
-  const onDelete = (t: { id: number; title: string }) => setDeleting({ id: t.id, title: t.title });
 
   const desktopTabs = manager
     ? [
@@ -176,7 +132,6 @@ export function TasksScreen({ user }: { user: User }) {
     />
   );
   const extView = manager ? <ManagerExtensions requests={requests} /> : <StaffExtensions requests={requests} />;
-  const newTask = () => setForm({ open: true, task: null });
 
   return (
     <>
@@ -216,7 +171,7 @@ export function TasksScreen({ user }: { user: User }) {
             {manager ? (
               <ManagerTaskTable tasks={tasks} since={since} onOpen={openPanel} onEdit={edit} onDelete={onDelete} footer={pager('desktop')} />
             ) : (
-              <StaffTaskTable tasks={tasks} since={since} actions={actions} onOpen={openPanel} onRequestExtension={setAsking} footer={pager('desktop')} />
+              <StaffTaskTable tasks={tasks} since={since} actions={actions} onOpen={openPanel} onRequestExtension={ws.requestExtension} footer={pager('desktop')} />
             )}
           </div>
         )}
@@ -274,7 +229,7 @@ export function TasksScreen({ user }: { user: User }) {
               manager ? (
                 <ManagerTaskCard key={t.id} t={t} since={since} onOpen={openPanel} onEdit={edit} onDelete={onDelete} />
               ) : (
-                <StaffTaskCard key={t.id} t={t} since={since} actions={actions} onOpen={openPanel} onRequestExtension={setAsking} />
+                <StaffTaskCard key={t.id} t={t} since={since} actions={actions} onOpen={openPanel} onRequestExtension={ws.requestExtension} />
               ),
             )}
             {total > 0 && pager('mobile')}
@@ -282,27 +237,7 @@ export function TasksScreen({ user }: { user: User }) {
         )}
       </div>
 
-      <TaskPanelDrawer
-        taskId={panelId}
-        onClose={() => openPanel(null)}
-        manager={manager}
-        userId={user.id}
-        actions={actions}
-        onEdit={(t) => setForm({ open: true, task: t })}
-        onDelete={onDelete}
-      />
-      <TaskForm open={form.open} task={form.task} onClose={() => setForm({ open: false, task: null })} />
-      <RequestExtensionSheet open={asking !== null} taskId={asking ?? undefined} onClose={() => setAsking(null)} />
-      <Sheet open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        {deleting && (
-          <>
-            <SheetTitle>Delete “{deleting.title}”?</SheetTitle>
-            <SheetDescription>It disappears from every list. Its history is kept.</SheetDescription>
-            <SheetActions confirmLabel="Delete task" confirmDisabled={remove.isPending} onConfirm={() => remove.mutate(deleting.id)} />
-          </>
-        )}
-      </Sheet>
-      {actions.dialogs}
+      {ws.dialogs}
     </>
   );
 }

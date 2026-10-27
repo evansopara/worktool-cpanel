@@ -80,6 +80,7 @@ class TaskController extends Controller
 
         $request->validate([
             'tab' => 'nullable|in:all,mine,active,completed',
+            'state' => 'nullable|in:active,completed',
             'q' => 'nullable|string|max:200',
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d',
@@ -123,6 +124,12 @@ class TaskController extends Controller
 
         if ($request->project_id) $query->where('project_id', $request->project_id);
         if ($request->status)     $query->where('status', $request->status);
+        // Home's Active / Completed toggle, for any tab.
+        if ($request->input('state') === 'completed') {
+            $query->where('status', 'completed');
+        } elseif ($request->input('state') === 'active') {
+            $query->where('status', '!=', 'completed');
+        }
 
         if ($q = trim((string) $request->input('q'))) {
             $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $q) . '%';

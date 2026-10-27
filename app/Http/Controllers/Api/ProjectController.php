@@ -17,16 +17,7 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Project::with(['client', 'manager', 'creator', 'members']);
-
-        if (in_array($user->role, ['staff', 'intern'])) {
-            $query->whereHas('members', fn($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'project_manager') {
-            $query->where('manager_id', $user->id)
-                  ->orWhereHas('members', fn($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'client') {
-            $query->where('client_id', $user->id);
-        }
+        $query = Project::with(['client', 'manager', 'creator', 'members'])->visibleTo($user);
 
         return response()->json($query->orderBy('created_at', 'desc')->get());
     }

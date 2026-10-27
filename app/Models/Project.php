@@ -20,6 +20,22 @@ class Project extends Model
         'domain_expiry_notified_at' => 'datetime',
     ];
 
+    /** Projects a user may see: members see theirs, PMs theirs and managed, clients their own. */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if (in_array($user->role, ['staff', 'intern'])) {
+            return $query->whereHas('members', fn ($q) => $q->where('user_id', $user->id));
+        }
+        if ($user->role === 'project_manager') {
+            return $query->where(fn ($q) => $q->where('manager_id', $user->id)
+                ->orWhereHas('members', fn ($m) => $m->where('user_id', $user->id)));
+        }
+        if ($user->role === 'client') {
+            return $query->where('client_id', $user->id);
+        }
+        return $query;
+    }
+
     public function client() { return $this->belongsTo(User::class, 'client_id'); }
     public function manager() { return $this->belongsTo(User::class, 'manager_id'); }
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }

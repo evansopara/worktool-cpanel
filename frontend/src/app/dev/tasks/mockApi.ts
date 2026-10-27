@@ -167,10 +167,47 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
       let rows = visible();
       if (p.tab === 'completed') rows = rows.filter((t) => t.status === 'completed');
       if (p.tab === 'active') rows = rows.filter((t) => t.status !== 'completed');
+      if (p.tab === 'mine') rows = rows.filter((t) => t.assignee.id === viewerId || t.assigner.id === viewerId);
+      if (p.state === 'completed') rows = rows.filter((t) => t.status === 'completed');
+      if (p.state === 'active') rows = rows.filter((t) => t.status !== 'completed');
       if (p.status) rows = rows.filter((t) => t.status === p.status);
       if (p.q) rows = rows.filter((t) => `${t.title} ${t.project.name} ${name(t.assignee)}`.toLowerCase().includes(String(p.q).toLowerCase()));
       const page = Number(p.page ?? 1);
       return ok(config, { data: rows.slice((page - 1) * 10, page * 10).map(listItem), meta: { total: rows.length, page, per_page: 10, last_page: Math.max(1, Math.ceil(rows.length / 10)) } });
+    }
+    if (method === 'get' && url === '/home') {
+      const rows = visible();
+      const count = (s: string) => rows.filter((t) => t.status === s).length;
+      const current = rows.find((t) => t.running) ?? rows.filter((t) => !['completed', 'review'].includes(t.status)).sort((a, b) => a.start - b.start)[0];
+      const ext = extensions()[0];
+      return ok(config, {
+        status_counts: { in_progress: count('in_progress'), pending: count('pending'), todo: count('todo'), review: count('review'), technical_support: 0, deadline_missed: count('deadline_missed') },
+        ...(mine
+          ? {
+              current: current ? listItem(current) : null,
+              extension: ext ? { id: ext.id, task_title: ext.task.title, from: ext.status === 'pending' ? ext.task.deadline : null, requested: ext.requested_deadline, status: ext.status } : null,
+            }
+          : {
+              needs: [
+                ...(tasks.find((t) => t.id === 3)?.pendingExt ? [{ key: 'extensions', count: 1, label: 'Deadline extension to decide', detail: 'Victor Adeleye · Contour Fajaas Africa', href: '/dashboard/tasks?view=ext' }] : []),
+                { key: 'leave', count: 2, label: 'Leave applications pending', detail: 'Linda Ekeh, Temitayo Akintunde', href: '/dashboard/leave' },
+                { key: 'client_complaints', count: 2, label: 'Client complaints pending', detail: 'Complaints #1 and #2', href: '/dashboard/complaints' },
+                { key: 'staff_complaints', count: 1, label: 'Staff complaint pending', detail: 'Complaint #7', href: '/dashboard/staff-complaints' },
+              ],
+              pipeline: {
+                active: { total: 1, items: [{ id: 5, name: 'TopMart', category: 'Website Development', flag: 'Task timer running' }] },
+                pending: {
+                  total: 48,
+                  items: [
+                    { id: 11, name: 'SALAMAT', category: 'DPL Partnership', flag: 'No work activity for 1+ week' },
+                    { id: 12, name: 'Temitope Oyewole', category: 'DPL Outright', flag: 'No tasks assigned' },
+                    { id: 13, name: 'Dr Gloria Esoimeme', category: 'DPL Outright', flag: 'No work activity for 1+ week' },
+                  ],
+                },
+                completed: { total: 4, items: ['QueenbodySecret', 'TopMart', 'Oladoyin taiwo', 'Adan Idet'].map((name, i) => ({ id: 20 + i, name, category: 'Website Development' })) },
+              },
+            }),
+      });
     }
     if (method === 'get' && url === '/deadline-requests') return ok(config, extensions());
     if (method === 'get' && url === '/projects') return ok(config, projects);
