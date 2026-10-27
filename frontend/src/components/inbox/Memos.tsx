@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Mail } from 'lucide-react';
@@ -92,6 +92,10 @@ function MemoBody({ id, user, onClose }: { id: number; user: User; onClose: () =
   const qc = useQueryClient();
   // Opening a memo marks it read on the server.
   const memo = useQuery({ queryKey: ['memo', id], queryFn: () => memoApi.get(id) });
+  const loaded = memo.isSuccess;
+  useEffect(() => {
+    if (loaded) qc.invalidateQueries({ queryKey: ['badges'] });
+  }, [id, loaded, qc]);
   const [reply, setReply] = useState('');
   const respond = useMutation({
     mutationFn: () => memoApi.respond(id, reply.trim()),

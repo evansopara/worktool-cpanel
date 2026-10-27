@@ -14,8 +14,9 @@ import { errorText } from '@/lib/tasks';
 import { Button, IconButton, SearchField, SegmentedFilter, Sheet, SheetActions, SheetDescription, SheetTitle, StatusPill, type StatusTone } from '@/components/wc';
 import { PageBody, PageHeader } from '@/components/shell/PageHeader';
 
-// Review links: Project Managers send a link to a Team Lead, who approves it
-// or asks for changes. No artboard exists; it follows the People hub style.
+// Review links: Project Managers and Operations Managers send a link to a
+// Team Lead, who approves it or asks for changes. No artboard exists; it
+// follows the People hub style.
 
 type Status = 'all' | 'pending' | 'approved' | 'not_approved';
 const STATUS: Record<string, { label: string; tone: StatusTone }> = {
@@ -43,9 +44,9 @@ export default function ReviewLinksPage() {
   const { data: users = [] } = useQuery<User[]>({ queryKey: ['users'], queryFn: () => usersApi.list().then((r) => r.data) });
 
   const isReviewer = user?.role === 'team_lead';
-  const isSender = user?.role === 'project_manager';
-  // Reviewers see everything sent for review; senders only what they sent.
-  const scoped = isSender ? links.filter((l) => l.sent_by === user?.id) : links;
+  const isSender = user?.role === 'project_manager' || user?.role === 'operations_manager';
+  // Project Managers see what they sent; Team Leads and Operations Managers see everything.
+  const scoped = user?.role === 'project_manager' ? links.filter((l) => l.sent_by === user?.id) : links;
   const term = search.trim().toLowerCase();
   const shown = scoped.filter((l) => (status === 'all' || l.status === status) && (!term || l.title.toLowerCase().includes(term)));
   const teamLeads = users.filter((u) => u.role === 'team_lead');
@@ -151,7 +152,12 @@ export default function ReviewLinksPage() {
         )}
         {shown.map((l) => {
           const s = STATUS[l.status] ?? { label: l.status, tone: 'todo' as StatusTone };
-          const person = isSender ? `To ${fullName(l.assignee) || 'no one yet'}` : `From ${fullName(l.sender) || 'unknown'}`;
+          const person =
+            user?.role === 'project_manager'
+              ? `To ${fullName(l.assignee) || 'no one yet'}`
+              : isReviewer
+                ? `From ${fullName(l.sender) || 'unknown'}`
+                : `${fullName(l.sender) || 'Unknown'} → ${fullName(l.assignee) || 'no one yet'}`;
           return (
             <article key={l.id} className="flex flex-col gap-3 rounded-[24px] bg-surface p-[18px] lg:rounded-[26px] lg:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -188,7 +194,7 @@ export default function ReviewLinksPage() {
                     </Button>
                   </>
                 )}
-                {isSender && (
+                {(l.sent_by === user?.id || user?.role === 'operations_manager') && (
                   <IconButton variant="danger" className="ml-auto" aria-label={`Delete ${l.title}`} onClick={() => setDeleting(l)}>
                     <Trash2 strokeWidth={2} aria-hidden="true" />
                   </IconButton>

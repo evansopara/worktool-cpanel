@@ -161,6 +161,11 @@ export function ConversationList({
 export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; onBack: () => void }) {
   const qc = useQueryClient();
   const messages = useQuery({ queryKey: ['conversation', conv.key], queryFn: () => inboxApi.messages(conv.key), refetchInterval: 5_000 });
+  // Opening a chat marks its messages read on the server; recount the badges.
+  const loaded = messages.isSuccess;
+  useEffect(() => {
+    if (loaded) qc.invalidateQueries({ queryKey: ['badges'] });
+  }, [conv.key, loaded, qc]);
   const send = useMutation({
     mutationFn: (text: string) => inboxApi.send(conv.key, text),
     onSuccess: () => {

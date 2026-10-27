@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import Sidebar from '@/components/layout/Sidebar';
 import { AppShell } from '@/components/shell/AppShell';
 import { notificationsApi } from '@/lib/api';
+import { useBadges } from '@/lib/badges';
 import { Menu, Briefcase } from 'lucide-react';
 
 const DESKTOP_BREAKPOINT = 1024;
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     enabled: redesigned,
     refetchInterval: 60_000,
   });
+  const badges = useBadges(redesigned);
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -52,7 +54,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (redesigned) {
     return (
-      <AppShell user={user} unread={unread} onSignOut={logout}>
+      <AppShell user={user} unread={unread} badges={badges} onSignOut={logout}>
         {children}
       </AppShell>
     );
