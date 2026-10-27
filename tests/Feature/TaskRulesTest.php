@@ -368,8 +368,14 @@ class TaskRulesTest extends TestCase
             ->assertJsonPath('meta.last_page', 3);
         $this->getJson('/api/tasks?tab=all&page=3')->assertJsonCount(7, 'data');
 
+        // Mobile cards get a short one-line preview of the instructions.
+        $this->task(['title' => 'Briefed', 'description' => "Step one.\n\nStep two."]);
+        $item = collect($this->getJson('/api/tasks?tab=all&q=Briefed')->json('data'))->first();
+        $this->assertSame('Step one. Step two.', $item['instructions_preview']);
+        $this->assertTrue($item['has_instructions']);
+
         // Without page or tab, the old array response is unchanged.
-        $this->assertCount(27, $this->getJson('/api/tasks')->json());
+        $this->assertCount(28, $this->getJson('/api/tasks')->json());
     }
 
     public function test_list_filters_by_tab_search_and_date_range(): void

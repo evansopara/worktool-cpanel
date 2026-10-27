@@ -2,8 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  // Dev-only badge; bottom-left would cover the sidebar's sign-out and the mobile dock.
-  devIndicators: { position: 'top-right' },
+  // Dev-only badge: it covers the sidebar, the mobile dock or the task panel's
+  // close button wherever it sits. Build and runtime errors still show.
+  devIndicators: false,
 };
 
 export default nextConfig;

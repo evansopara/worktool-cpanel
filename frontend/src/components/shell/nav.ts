@@ -106,8 +106,8 @@ type SectionDef = {
 const S = {
   home: { key: 'home', label: 'Home', sub: '', pages: [PAGES.home] },
   projects: { key: 'projects', label: 'Projects', sub: '', pages: [PAGES.projects] },
-  tasks: { key: 'tasks', label: 'Tasks', sub: '', pages: [PAGES.tasks, PAGES.extensions] },
-  myTasks: { key: 'tasks', label: 'My tasks', sub: '', pages: [PAGES.tasks, PAGES.extensions] },
+  tasks: { key: 'tasks', label: 'Tasks', sub: '', pages: [PAGES.tasks] },
+  myTasks: { key: 'tasks', label: 'My tasks', sub: '', pages: [PAGES.tasks] },
   inbox: { key: 'inbox', label: 'Inbox', sub: '', pages: [PAGES.messages, PAGES.general, PAGES.memos] },
   calendar: { key: 'calendar', label: 'Calendar', sub: 'Meetings and bookings', pages: [PAGES.bookings] },
   people: {

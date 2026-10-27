@@ -17,6 +17,7 @@ import { formatDate, toDatetimeLocalValue } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import TimerCell from '@/components/tasks/TimerCell';
+import { useTaskActions } from '@/components/task/useTaskActions';
 import {
   CheckSquare, Hourglass, ListTodo, GitPullRequestArrow, Headphones,
   Pencil, Trash2, Play, Square, CheckCheck, ChevronDown, ChevronUp,
@@ -89,6 +90,8 @@ type Project = {
 export default function DashboardPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  // Starting goes through the new task rules' prompts (read first, start early).
+  const taskActions = useTaskActions();
 
   const [expandedStatus, setExpandedStatus] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -303,6 +306,7 @@ export default function DashboardPage() {
   return (
     <div>
       <Header title="Dashboard" />
+      {taskActions.dialogs}
       <div className="p-6 space-y-8">
 
         {/* Project Status */}
@@ -629,7 +633,16 @@ export default function DashboardPage() {
                         {isStaffOrIntern ? (
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => timerMutation.mutate({ id: task.id, running: task.is_timer_running })}
+                              onClick={() =>
+                                task.is_timer_running
+                                  ? timerMutation.mutate({ id: task.id, running: true })
+                                  : taskActions.start({
+                                      id: task.id,
+                                      title: task.title,
+                                      deadline: task.deadline ?? null,
+                                      estimateMinutes: (task.working_hours ?? 0) * 60 + (task.working_minutes ?? 0),
+                                    })
+                              }
                               disabled={
                                 (timerMutation.isPending && timerMutation.variables?.id === task.id) ||
                                 (!task.is_timer_running && !!task.deadline && new Date(task.deadline) < new Date())

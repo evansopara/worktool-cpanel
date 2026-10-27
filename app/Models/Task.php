@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon as SupportCarbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Task extends Model
 {
@@ -234,6 +235,8 @@ class Task extends Model
             'is_timer_running' => (bool) $this->is_timer_running,
             'timer_start_time' => $this->timer_start_time?->toIso8601String(),
             'has_instructions' => $this->hasInstructions(),
+            // One or two lines for the mobile cards; the full text is in the panel.
+            'instructions_preview' => $this->hasInstructions() ? Str::limit(trim(preg_replace('/\s+/', ' ', $this->description)), 160) : null,
             'pending_extension' => (bool) ($this->pending_extensions_count ?? 0),
             'lock_early_start' => (bool) $this->lock_early_start,
         ];

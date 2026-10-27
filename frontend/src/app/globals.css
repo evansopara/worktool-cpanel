@@ -38,6 +38,7 @@
   --color-pending: #8A5A00;
   --color-pending-tint: #FCF0CC;
   --color-pending-ink: #5C3C00;
+  --color-pending-line: #E0A100; /* dashed "waiting" marker in task history */
   --color-done: #1F7A4A;
   --color-done-tint: #E2F2E7;
   --color-review: #1E4797;
@@ -45,6 +46,7 @@
   --color-todo: #4D4A44;
   --color-todo-tint: #ECEAE4;
   --color-brief-tint: #FFF6CC;
+  --color-brief-track: #F1E3A0; /* session bar track inside the brief tint */
 
   /* Timer dot: running / stopped */
   --color-live: #1F9D57;
