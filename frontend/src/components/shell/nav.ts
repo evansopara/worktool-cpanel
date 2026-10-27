@@ -114,6 +114,7 @@ const HUBS = {
   people: { href: '/dashboard/people', roles: ['operations_manager', 'team_lead'], label: 'People' },
   inbox: { href: '/dashboard/messages', roles: ALL, label: 'Inbox' },
   clients: { href: '/dashboard/clients', roles: ['operations_manager', 'team_lead'], label: 'Clients' },
+  library: { href: '/dashboard/library', roles: ['operations_manager'], label: 'Library' },
 } satisfies Record<string, PageDef>;
 
 const S = {
@@ -140,7 +141,7 @@ const S = {
     hubCovers: [PAGES.sentiment, PAGES.clientComplaints],
   },
   insights: { key: 'insights', label: 'Insights', sub: 'KPI report', pages: [PAGES.kpi] },
-  library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes] },
+  library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes], hub: HUBS.library },
   admin: { key: 'admin', label: 'Admin', sub: 'Users and access', pages: [PAGES.admin] },
   settings: { key: 'settings', label: 'Settings', sub: 'Profile, password, appearance', pages: [PAGES.settings, PAGES.issues, PAGES.support] },
   staffSettings: { key: 'settings', label: 'Settings', sub: 'Profile, password, appearance', pages: [PAGES.settings, PAGES.issues] },
