@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}a:hover{color:#000000}
+@keyframes wcpulse{0%,100%{opacity:1}50%{opacity:0.35}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+@media (min-width: 900px){.wc-side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div class="wc-side" style="flex:1 1 248px;background:#121212"><dc-import name="Topbar" active="home" role="staff" hint-size="100%,1000px"></dc-import></div>
+<main style="flex:999 1 560px;min-width:0;max-width:1280px;margin:0 auto;box-sizing:border-box;padding:28px 40px 72px;display:flex;flex-direction:column;gap:20px">
+
+<header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding:8px 0 12px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<p style="margin:0;font-size:14px;font-weight:600;color:#6A665F">Monday, October 26 · Staff</p>
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:56px;line-height:0.98;font-weight:700;letter-spacing:-0.04em">Good afternoon,<br>Victor.</h1>
+</div>
+<a href="StaffTasks.dc.html" style="display:inline-flex;align-items:center;height:48px;padding:0 22px;border-radius:999px;background:#FFFFFF;color:#121212;font-size:15px;font-weight:600;text-decoration:none">All my tasks</a>
+</header>
+
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<section aria-labelledby="h-now" style="flex:7 1 520px;min-width:0;background:#121212;color:#FFFFFF;border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px"><div style="display:flex;flex-direction:column;gap:3px;min-width:0"><h2 id="h-now" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:22px;line-height:1.15;font-weight:700"><a href="StaffTaskDetail.dc.html" style="color:inherit;text-decoration:none">[Website task title]</a></h2><span style="font-size:13px;color:#A8A49C">WC Digital Agency · est. 2hr 59min</span></div><span style="flex:none;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:#2A2926;color:#E6E3DC">{{now.status}}</span></div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><span role="timer" aria-label="{{now.label}}" style="display:flex;align-items:center;gap:10px;margin-right:auto"><span aria-hidden="true" style="width:9px;height:9px;border-radius:50%;background:{{now.dot}};animation:{{now.anim}}"></span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:32px;line-height:1;font-weight:600;color:#FFD43B">03:02:43</span></span><button type="button" onClick="{{toggle}}" aria-pressed="{{now.pressed}}" style="display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 16px;border:0;border-radius:999px;background:{{now.btnBg}};color:{{now.btnFg}};font-family:inherit;font-size:14px;font-weight:700;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{now.icon}}"></path></svg>{{now.btn}}</button><button type="button" onClick="{{submit}}" style="height:40px;padding:0 16px;border:1px solid #3A3936;border-radius:999px;background:transparent;color:#FFFFFF;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Submit</button></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><div style="padding:8px 12px;border-radius:12px;background:#1E1D1B;display:flex;flex-direction:column;gap:1px"><span style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.65">Start</span><span style="font-size:13px;font-weight:600">Oct 26, 1:01 PM</span></div><div style="padding:8px 12px;border-radius:12px;background:#1E1D1B;display:flex;flex-direction:column;gap:1px"><span style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.65">Deadline</span><span style="font-size:13px;font-weight:600;color:#FFFFFF">Oct 26, 4:00 PM</span></div></div>
+<button type="button" onClick="{{openBrief}}" style="display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;border-radius:12px;background:#1E1D1B;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"></path></svg><span style="flex:none;font-size:12.5px;font-weight:600">Instructions</span><span style="flex:1;min-width:0;font-size:12.5px;opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">[Instructions from Adeyemo Titilope — steps, links, files and what “done” looks like.]</span><span style="flex:none;font-size:12.5px;font-weight:600;text-decoration:underline">Read</span></button>
+</section>
+
+<div style="flex:4 1 320px;min-width:0;display:flex;flex-direction:column;gap:20px">
+<section aria-labelledby="h-sup" style="background:#FFFFFF;border-radius:30px;padding:26px;display:flex;flex-direction:column;gap:10px">
+<h2 id="h-sup" style="margin:0;font-size:15px;font-weight:600;color:#4D4A44">Technical support</h2>
+<p style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:60px;line-height:0.9;font-weight:700">0</p>
+<p style="margin:0;font-size:14px;color:#6A665F">No technical support tasks</p>
+</section>
+<section aria-labelledby="h-ext" style="background:#FFFFFF;border-radius:30px;padding:26px;display:flex;flex-direction:column;gap:10px">
+<h2 id="h-ext" style="margin:0;font-size:15px;font-weight:600;color:#4D4A44">Your extension request</h2>
+<p style="margin:0;font-size:16px;font-weight:700">Work on Contourfajasafrica email</p>
+<p style="margin:0;font-size:13.5px;color:#4D4A44">Oct 23, 5:00 PM → Oct 26, 11:00 AM</p>
+<span style="align-self:flex-start;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:999px;background:#FCF0CC;color:#8A5A00">Pending · awaiting manager</span>
+</section>
+</div>
+</div>
+
+<section aria-labelledby="h-mine" style="background:#FFFFFF;border-radius:30px;padding:28px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-bottom:6px">
+<h2 id="h-mine" style="margin:0 auto 0 0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em">My tasks</h2>
+<div role="group" aria-label="Filter tasks" style="display:flex;padding:4px;border-radius:999px;background:#EFEDE7">
+<sc-for list="{{filters}}" as="fl" hint-placeholder-count="3"><button type="button" aria-pressed="{{fl.on}}" onClick="{{fl.pick}}" style="display:flex;align-items:center;gap:6px;height:38px;padding:0 16px;border:0;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{fl.bg}};color:{{fl.fg}}">{{fl.label}}<span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;opacity:0.7">{{fl.n}}</span></button></sc-for>
+</div>
+<label style="display:flex;align-items:center;gap:8px;height:46px;padding:0 16px;border-radius:999px;background:#EFEDE7;min-width:220px;color:#6A665F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg><input type="search" aria-label="Search tasks" placeholder="Search tasks" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font-family:inherit;font-size:14px;color:#121212"></label>
+<div role="group" aria-label="Filter by date range" style="display:flex;align-items:center;gap:6px;height:46px;padding:0 8px 0 16px;border-radius:999px;background:#EFEDE7"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4D4A44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg><span style="font-size:13.5px;font-weight:600;color:#4D4A44">From</span><input type="date" aria-label="From date" style="height:36px;border:0;background:transparent;font-family:inherit;font-size:13.5px;color:#121212"><span style="font-size:13.5px;color:#6A665F">to</span><input type="date" aria-label="To date" style="height:36px;border:0;background:transparent;font-family:inherit;font-size:13.5px;color:#121212"></div>
+</div>
+<div aria-hidden="true" style="display:flex;flex-wrap:wrap;gap:10px 20px;padding:0 4px 6px;font-size:11.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6A665F"><span style="flex:3 1 240px">Task</span><span style="flex:0 0 130px">Status</span><span style="flex:0 0 96px">Time</span><span style="flex:2 1 230px">Schedule</span><span style="flex:0 0 200px;text-align:right">Action</span></div>
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+<sc-for list="{{rows}}" as="t" hint-placeholder-count="10">
+<li style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;padding:13px 4px;border-top:1px solid #ECEAE4">
+<span style="flex:3 1 240px;min-width:0;display:flex;flex-direction:column;gap:2px"><a href="StaffTaskDetail.dc.html" style="font-size:15px;font-weight:700;color:#121212;text-decoration:none">{{t.title}}</a><span style="font-size:12.5px;color:#6A665F">{{t.project}} · est. {{t.est}}</span></span>
+<span style="flex:0 0 130px"><span style="display:inline-flex;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:{{t.sbg}};color:{{t.sfg}}">{{t.status}}</span></span>
+<span style="flex:0 0 96px;display:flex;align-items:center;gap:7px;font-family:'Geist Mono',ui-monospace,monospace;font-size:13.5px;font-weight:600;color:#4D4A44"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{t.dot}};animation:{{t.anim}}"></span>{{t.spent}}</span>
+<span style="flex:2 1 230px;display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:13px;align-items:baseline"><span style="font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Start</span><span style="font-weight:600">{{t.start}}</span><span style="font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Deadline</span><span style="font-weight:600;color:{{t.dueFg}}">{{t.due}}</span></span>
+<span style="flex:0 0 200px;display:flex;justify-content:flex-end;gap:6px">
+<sc-if value="{{t.isTimer}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{t.onStart}}" aria-label="{{t.startLabel}} timer for {{t.title}}" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:999px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:{{t.startBg}};color:{{t.startFg}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{t.icon}}"></path></svg>{{t.startLabel}}</button><button type="button" onClick="{{t.onSubmit}}" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:999px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:#FFD43B;color:#121212">Submit</button></sc-if>
+<sc-if value="{{t.isReview}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:600;color:#1E4797">Waiting for review</span></sc-if>
+<sc-if value="{{t.isDone}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:600;color:#1F7A4A">Submitted</span></sc-if>
+<sc-if value="{{t.isMissed}}" hint-placeholder-val="{{ false }}"><button type="button" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:999px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:#EFEDE7;color:#121212;font-weight:600">Request extension</button></sc-if>
+<sc-if value="{{t.isLocked}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:600;color:#8A5A00">Extension pending</span></sc-if>
+</span>
+<sc-if value="{{t.note}}" hint-placeholder-val="{{ false }}"><span style="flex:1 0 100%;font-size:12.5px;color:#8A5A00;font-weight:600">{{t.note}}</span></sc-if>
+</li>
+</sc-for>
+</ul>
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid #ECEAE4">
+<span style="font-size:13.5px;color:#6A665F">Showing <strong style="color:#121212">{{range}}</strong> of {{total}} tasks</span>
+<nav aria-label="Task pages" style="display:flex;align-items:center;gap:6px">
+<button type="button" onClick="{{prev}}" aria-label="Previous page" aria-disabled="{{prevOff}}" style="width:40px;height:40px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{prevOp}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+<sc-for list="{{pages}}" as="p" hint-placeholder-count="3"><button type="button" onClick="{{p.go}}" aria-label="Page {{p.n}}" aria-current="{{p.cur}}" style="min-width:40px;height:40px;padding:0 6px;border:0;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{p.bg}};color:{{p.fg}}">{{p.n}}</button></sc-for>
+<button type="button" onClick="{{next}}" aria-label="Next page" aria-disabled="{{nextOff}}" style="width:40px;height:40px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{nextOp}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></button>
+</nav>
+</div>
+</section>
+
+</main>
+<sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(18,18,18,0.5)">
+<div role="dialog" aria-modal="true" aria-labelledby="sh-brief" style="width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:28px;border-radius:30px;background:#FFFFFF;display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-size:12.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8A5A00">{{sheet.eyebrow}}</p>
+<h2 id="sh-brief" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:30px;line-height:1.08;font-weight:700;letter-spacing:-0.02em">[Website task title]</h2>
+<p style="margin:0;font-size:13.5px;color:#6A665F">From Adeyemo Titilope</p>
+<div style="padding:18px;border-radius:20px;background:#F7F6F2;font-size:15px;line-height:1.6">[Full instructions written by Adeyemo Titilope when creating or editing this task — steps to follow, links, files and what “done” looks like.]</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" onClick="{{closeSheet}}" style="flex:1 1 140px;height:52px;border:0;border-radius:999px;background:#EFEDE7;color:#121212;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">Cancel</button><button type="button" onClick="{{confirmSheet}}" style="flex:2 1 200px;height:52px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">{{sheet.cta}}</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { run2: false, running: true, submitted: false, briefSeen: true, sheet: '', page: 1, filter: 'all' }; }
+  renderVals() {
+    var self = this, s = this.state;
+    var play = 'M7 4v16l13-8z', pause = 'M6 4h4v16H6zM14 4h4v16h-4z';
+    var toggle = function () {
+      if (self.state.running) { self.setState({ running: false }); return; }
+      if (!self.state.briefSeen) { self.setState({ sheet: 'start' }); return; }
+      self.setState({ running: true, submitted: false });
+    };
+    var submit = function () { self.setState({ submitted: true, running: false }); };
+    var run = s.running && !s.submitted;
+    var t1 = {
+      project: 'WC Digital Agency', by: 'Adeyemo Titilope', title: '[Website task title]',
+      status: s.submitted ? 'In review' : 'In progress', sbg: s.submitted ? '#DCE6F7' : '#E3ECFB', sfg: '#1E4797',
+      spent: '03:02:43', timeFg: run ? '#121212' : '#4D4A44', dot: run ? '#1F9D57' : '#8E8A82', anim: run ? 'wcpulse 1.4s ease-in-out infinite' : 'none',
+      start: 'Oct 26, 1:01 PM', due: 'Oct 26, 4:00 PM', dueFg: '#121212', sub: 'Est. 2hr 59min',
+      startLabel: run ? 'Stop' : 'Start', icon: run ? pause : play, startBg: run ? '#121212' : '#E2F2E7', startFg: run ? '#FFFFFF' : '#1F7A4A',
+      locked: 'false', cursor: 'pointer', op: '1',
+      onStart: toggle, onSubmit: submit, note: s.submitted ? 'Submitted for review. You can still restart the timer or resubmit.' : ''
+    };
+    var t2 = {
+      project: 'Contour Fajaas Africa', by: 'Adeyemo Titilope', title: 'Work on Contourfajasafrica email',
+      status: 'Deadline missed', sbg: '#FBE7E4', sfg: '#C0362C', spent: '00:00:00', timeFg: '#4D4A44', dot: s.run2 ? '#1F9D57' : '#8E8A82', anim: s.run2 ? 'wcpulse 1.4s ease-in-out infinite' : 'none',
+      start: 'Oct 23, 3:00 PM', due: 'Oct 23, 5:00 PM', dueFg: '#C0362C', sub: 'Est. 2hr · deadline missed',
+      startLabel: s.run2 ? 'Stop' : 'Start', icon: s.run2 ? pause : play, startBg: s.run2 ? '#121212' : '#E2F2E7', startFg: s.run2 ? '#FFFFFF' : '#1F7A4A', locked: 'false', cursor: 'pointer', op: '1',
+      onStart: function () { self.setState({ run2: !self.state.run2 }); }, onSubmit: function () { self.setState({ run2: false }); }, note: 'Extension to Oct 26, 11:00 AM requested — you can keep working while it’s decided.'
+    };
+    function buildAll(t1, t2) {
+      var P = ['QueenbodySecret', 'TopMart', 'SALAMAT', 'Marketing Team', 'Oladoyin taiwo', 'Adan Idet', 'Temitope Oyewole', 'Dr Gloria Esoimeme', 'Abiola Adediran', 'WC Digital Agency', 'Contour Fajaas Africa'];
+      var T = ['Homepage hero section', 'SMTP setup and test emails', 'Product page layout', 'Checkout flow review', 'Mobile menu fixes', 'Client walkthrough prep', 'Blog page template', 'Contact form validation', 'Speed optimisation pass', 'Footer and legal pages', 'Image compression', 'Landing page copy edits', 'Payment gateway test', 'Banner resize for ads', 'Newsletter template', 'About page update', '404 page design', 'Analytics setup', 'Search results page', 'Order confirmation email', 'Cart abandonment email', 'Social share images'];
+      var E = ['1hr', '2hr', '45min', '3hr', '1hr 30min', '30min'];
+      var S = ['01:02:10', '01:48:33', '00:41:05', '02:55:20', '01:21:47', '00:27:12'];
+      var H = ['9:00 AM', '10:30 AM', '11:00 AM', '1:00 PM', '2:30 PM', '3:00 PM'];
+      var D = ['11:00 AM', '12:30 PM', '12:00 PM', '4:00 PM', '4:00 PM', '3:30 PM'];
+      var out = [t1];
+      for (var i = 0; i < 22; i++) {
+        var k = i % 6, kind, day;
+        if (i < 3) { kind = 'todo'; day = 27 + (i > 1 ? 1 : 0); }
+        else if (i < 5) { kind = 'review'; day = 26; }
+        else if (i < 6) { kind = 'missed'; day = 24; }
+        else { kind = 'done'; day = 25 - (i - 6); }
+        var o = { project: P[i % P.length], title: T[i], est: E[k], start: 'Oct ' + day + ', ' + H[k], due: 'Oct ' + day + ', ' + D[k], kind: kind };
+        if (kind === 'todo') Object.assign(o, { status: 'To do', sbg: '#ECEAE4', sfg: '#4D4A44', spent: '00:00:00', dueFg: '#121212' });
+        if (kind === 'review') Object.assign(o, { status: 'In review', sbg: '#DCE6F7', sfg: '#1E4797', spent: S[k], dueFg: '#121212' });
+        if (kind === 'missed') Object.assign(o, { status: 'Deadline missed', sbg: '#FBE7E4', sfg: '#C0362C', spent: '00:00:00', dueFg: '#C0362C' });
+        if (kind === 'done') Object.assign(o, { status: 'Completed', sbg: '#E2F2E7', sfg: '#1F7A4A', spent: S[k], dueFg: '#121212' });
+        out.push(o);
+        if (i === 5) out.push(t2);
+      }
+      return out;
+    }
+    var all = buildAll(Object.assign(t1, { kind: 'running', est: '2hr 59min' }), Object.assign(t2, { kind: 'locked', est: '2hr' }));
+    all.forEach(function (r) {
+      r.isTimer = r.kind === 'running' || r.kind === 'todo' || r.kind === 'review' || r.kind === 'locked'; r.isReview = false; r.isDone = r.kind === 'done';
+      r.isMissed = r.kind === 'missed'; r.isLocked = false;
+      if (r.kind === 'todo' || r.kind === 'review') Object.assign(r, { startLabel: 'Start', icon: play, startBg: '#E2F2E7', startFg: '#1F7A4A', onStart: function () {}, onSubmit: function () {} });
+      if (r.kind !== 'running' && r.kind !== 'locked') { r.dot = 'transparent'; r.anim = 'none'; }
+      if (r.kind === 'locked') r.note = 'Extension pending — you can keep working while it’s decided.';
+    });
+    var active = all.filter(function (r) { return r.kind !== 'done'; }), done = all.filter(function (r) { return r.kind === 'done'; });
+    var lists = { all: all, active: active, done: done };
+    var list = lists[s.filter] || all, per = 10, pagesN = Math.max(1, Math.ceil(list.length / per)), page = Math.min(s.page, pagesN);
+    var from = (page - 1) * per;
+    function fl(id, label) { var on = s.filter === id; return { label: label, n: String(lists[id].length), on: on ? 'true' : 'false', bg: on ? '#121212' : 'transparent', fg: on ? '#FFFFFF' : '#4D4A44', pick: function () { self.setState({ filter: id, page: 1 }); } }; }
+    var pages = []; for (var p = 1; p <= pagesN; p++) (function (n) { var on = n === page; pages.push({ n: String(n), cur: on ? 'page' : 'false', bg: on ? '#121212' : '#EFEDE7', fg: on ? '#FFFFFF' : '#121212', go: function () { self.setState({ page: n }); } }); })(p);
+    return {
+      filters: [ fl('all', 'All'), fl('active', 'Active'), fl('done', 'Completed') ],
+      rows: list.slice(from, from + per), total: String(list.length), range: (from + 1) + '–' + Math.min(from + per, list.length), pages: pages,
+      prev: function () { if (page > 1) self.setState({ page: page - 1 }); }, next: function () { if (page < pagesN) self.setState({ page: page + 1 }); },
+      prevOff: page === 1 ? 'true' : 'false', nextOff: page === pagesN ? 'true' : 'false', prevOp: page === 1 ? '0.35' : '1', nextOp: page === pagesN ? '0.35' : '1',
+      now: {
+        label: s.submitted ? 'Submitted' : (run ? 'Timer running' : 'Timer paused'),
+        dot: run ? '#1F9D57' : '#8E8A82', anim: run ? 'wcpulse 1.4s ease-in-out infinite' : 'none',
+        status: s.submitted ? 'In review' : 'In progress',
+        btn: run ? 'Stop' : 'Start', icon: run ? pause : play,
+        btnBg: run ? '#FFFFFF' : '#FFD43B', btnFg: '#121212', pressed: run ? 'true' : 'false'
+      },
+      toggle: toggle, submit: submit,
+      
+      openBrief: function () { self.setState({ sheet: 'read' }); },
+      sheet: s.sheet ? { eyebrow: s.sheet === 'start' ? 'Read before you start' : 'Instructions', cta: s.sheet === 'start' ? 'Got it, start timer' : 'Got it' } : false,
+      closeSheet: function () { self.setState({ sheet: '' }); },
+      confirmSheet: function () { var start = self.state.sheet === 'start'; self.setState({ sheet: '', briefSeen: true, running: start ? true : self.state.running, submitted: start ? false : self.state.submitted }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

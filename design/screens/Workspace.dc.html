@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calendar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}a:hover{color:#000000}
+@media (min-width: 900px){.wc-side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div class="wc-side" style="flex:1 1 248px;background:#121212"><dc-import name="Topbar" active="calendar" hint-size="100%,1000px"></dc-import></div>
+<main style="flex:999 1 560px;min-width:0;max-width:1280px;margin:0 auto;box-sizing:border-box;padding:28px 40px 72px;display:flex;flex-direction:column;gap:22px">
+
+<header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding:8px 0 4px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:56px;line-height:1;font-weight:700;letter-spacing:-0.04em">Calendar</h1>
+<p style="margin:0;font-size:16px;color:#4D4A44">Schedule and manage team meetings</p>
+</div>
+<button type="button" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 22px;border:0;border-radius:999px;background:#FFD43B;color:#121212;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Schedule meeting</button>
+</header>
+
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+<section aria-labelledby="h-month" style="flex:3 1 520px;min-width:0;background:#FFFFFF;border-radius:28px;padding:26px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:10px">
+<h2 id="h-month" style="margin:0;flex:1;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.02em">July 2026</h2>
+<button type="button" aria-label="Previous month" style="width:44px;height:44px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+<button type="button" aria-label="Next month" style="width:44px;height:44px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px">
+<sc-for list="{{dow}}" as="d" hint-placeholder-count="7"><span style="padding:6px 0;text-align:center;font-size:12.5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">{{d}}</span></sc-for>
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="35">
+<div style="min-height:82px;box-sizing:border-box;padding:10px;border-radius:16px;display:flex;flex-direction:column;gap:6px;background:{{c.bg}};color:{{c.fg}}">
+<span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:14px;font-weight:600">{{c.day}}</span>
+<sc-if value="{{c.ev}}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;line-height:1.3">{{c.ev}}</span></sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="h-agenda" style="flex:2 1 340px;min-width:0;display:flex;flex-direction:column;gap:14px">
+<h2 id="h-agenda" style="margin:0;padding:4px 4px 0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em">Meetings</h2>
+<sc-for list="{{bookings}}" as="b" hint-placeholder-count="2">
+<article style="display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:26px;background:{{b.bg}};color:{{b.fg}}">
+<div style="display:flex;align-items:flex-start;gap:14px">
+<div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;width:56px"><span style="font-size:12px;font-weight:600;letter-spacing:0.08em;opacity:0.75">JUL</span><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:38px;line-height:1;font-weight:700">{{b.day}}</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+<h3 style="margin:0;font-size:19px;font-weight:700">{{b.title}}</h3>
+<span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:13.5px;font-weight:600">{{b.time}}</span>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:{{b.chip}}">One-on-One Booking</span><span style="font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:{{b.chip}}">Scheduled</span></div>
+</div>
+</div>
+<p style="margin:0;font-size:14.5px">{{b.desc}}</p>
+<p style="margin:0;font-size:13.5px;opacity:0.8">With {{b.with}} · Booked by {{b.by}}</p>
+<a href="Workspace.dc.html" style="font-size:13.5px;font-weight:600;overflow-wrap:anywhere;color:{{b.fg}}">{{b.link}}</a>
+<div style="display:flex;gap:8px">
+<button type="button" style="height:42px;padding:0 18px;border:0;border-radius:999px;background:{{b.chip}};color:{{b.fg}};font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Edit</button>
+<button type="button" style="height:42px;padding:0 18px;border:0;border-radius:999px;background:transparent;color:{{b.del}};font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Delete</button>
+</div>
+</article>
+</sc-for>
+</section>
+</div>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var ev = { 15: 'Production testing · 16:34', 30: 'Test me · 00:04' };
+    var cells = [];
+    for (var i = 0; i < 35; i++) {
+      var d = i - 1;
+      if (d < 1 || d > 31) { cells.push({ day: '', ev: '', bg: 'transparent', fg: '#121212' }); continue; }
+      var e = ev[d] || '';
+      cells.push({ day: String(d), ev: e, bg: e ? '#FFD43B' : '#F7F6F2', fg: '#121212' });
+    }
+    return {
+      dow: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      cells: cells,
+      bookings: [
+        { day: '15', title: 'Production testing', time: '16:34 – 18:00', desc: 'Hello', with: 'Blank account', by: 'Dummy pm', link: 'https://us02web.zoom.us/j/82115829086?pwd=vaFzIW4FBrbNM6I39aoSjqCMcKzBZs.1', bg: '#121212', fg: '#FFFFFF', chip: '#2A2926', del: '#FF9A8F' },
+        { day: '30', title: 'Test me', time: '00:04 – 01:02', desc: 'Trick', with: 'Blank account', by: 'Olubukola Ige', link: 'Marketing Emails for the Upsell One-on-One Coaching Offer', bg: '#FFFFFF', fg: '#121212', chip: '#EFEDE7', del: '#C0362C' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

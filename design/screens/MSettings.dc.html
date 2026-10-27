@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div style="position:absolute;left:0;bottom:0;z-index:2"><dc-import name="MTabBar" active="more" hint-size="390px,96px"></dc-import></div>
+<div style="height:844px;overflow-y:auto;box-sizing:border-box;padding:52px 18px 120px;display:flex;flex-direction:column;gap:14px">
+
+<div style="display:flex;align-items:center;gap:10px">
+<a href="MMore.dc.html" aria-label="Back to More" style="width:44px;height:44px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;flex:1;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:34px;line-height:1;font-weight:700;letter-spacing:-0.04em">Settings</h1>
+</div>
+
+<section aria-label="Your profile" style="display:flex;align-items:center;gap:14px;padding:18px;border-radius:26px;background:#121212;color:#FFFFFF">
+<span style="flex:none;width:64px;height:64px;border-radius:50%;background:#FFD43B;color:#121212;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:24px;font-weight:700">OI</span>
+<div style="min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:22px;font-weight:700">Olubukola Ige</span><span style="font-size:13px;color:#BDB9B0">Operations Manager</span><span style="font-size:13px;color:#BDB9B0;overflow:hidden;text-overflow:ellipsis">bukkieige@gmail.com</span></div>
+</section>
+
+<section aria-labelledby="ms-prof" style="padding:18px;border-radius:24px;background:#FFFFFF;display:flex;flex-direction:column;gap:12px">
+<h2 id="ms-prof" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:20px;font-weight:700">Profile</h2>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">First name<input type="text" value="Olubukola" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;color:#121212"></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Last name<input type="text" value="Ige" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;color:#121212"></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Phone<input type="tel" placeholder="Add a phone number" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;color:#121212"></label>
+<button type="button" style="height:48px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:600">Save profile</button>
+</section>
+
+<section aria-labelledby="ms-pass" style="padding:18px;border-radius:24px;background:#FFFFFF;display:flex;flex-direction:column;gap:12px">
+<h2 id="ms-pass" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:20px;font-weight:700">Change password</h2>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Current password<input type="password" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px"></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">New password<input type="password" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px"></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Confirm new password<input type="password" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px"></label>
+<button type="button" style="height:48px;border:0;border-radius:999px;background:#EFEDE7;color:#121212;font-family:inherit;font-size:15px;font-weight:600">Update password</button>
+</section>
+
+<section aria-labelledby="ms-app" style="padding:18px;border-radius:24px;background:#FFFFFF;display:flex;flex-direction:column;gap:12px">
+<h2 id="ms-app" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:20px;font-weight:700">Appearance</h2>
+<div role="radiogroup" aria-label="Theme" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+<button type="button" role="radio" aria-checked="true" style="display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:18px;border:2px solid #121212;background:#FFFFFF;font-family:inherit"><span style="height:56px;border-radius:10px;background:#EFEDE7"></span><span style="font-size:13px;font-weight:600;color:#121212">Light</span></button>
+<button type="button" role="radio" aria-checked="false" style="display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:18px;border:2px solid transparent;background:#F7F6F2;font-family:inherit"><span style="height:56px;border-radius:10px;background:#121212"></span><span style="font-size:13px;font-weight:600;color:#121212">Dark</span></button>
+<button type="button" role="radio" aria-checked="false" style="display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:18px;border:2px solid transparent;background:#F7F6F2;font-family:inherit"><span style="height:56px;border-radius:10px;background:linear-gradient(90deg,#EFEDE7 50%,#121212 50%)"></span><span style="font-size:13px;font-weight:600;color:#121212">Device</span></button>
+</div>
+</section>
+
+<section aria-labelledby="ms-rep" style="padding:18px;border-radius:24px;background:#FFFFFF;display:flex;flex-direction:column;gap:12px">
+<h2 id="ms-rep" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:20px;font-weight:700">Report an issue</h2>
+<p style="margin:0;font-size:13.5px;color:#4D4A44">Help us improve the app by reporting bugs, requesting features, or suggesting improvements.</p>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Issue title<input type="text" required="" placeholder="Brief description of the issue" style="height:50px;padding:0 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px"></label>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Category<select style="height:50px;padding:0 12px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;color:#121212"><option>Other</option></select></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Priority<select style="height:50px;padding:0 12px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;color:#121212"><option>Medium</option></select></label>
+</div>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Issue description<textarea required="" rows="3" placeholder="Steps to reproduce, expected and actual behaviour" style="padding:14px 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;resize:vertical"></textarea></label>
+<label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#4D4A44">Suggestions (optional)<textarea rows="2" placeholder="How could this be fixed or improved?" style="padding:14px 16px;border:0;border-radius:16px;background:#F7F6F2;font-family:inherit;font-size:15px;resize:vertical"></textarea></label>
+<button type="button" style="height:50px;border:0;border-radius:999px;background:#FFD43B;color:#121212;font-family:inherit;font-size:15px;font-weight:700">Submit report</button>
+<div style="display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:18px;background:#F7F6F2">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="font-size:14.5px;font-weight:700">Not able to resolve staff issues</span><span style="flex:none;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#121212;color:#FFFFFF">Closed</span></div>
+<span style="font-size:13px;color:#4D4A44">I need to have access to close off staff issues</span>
+<span style="font-size:12px;color:#6A665F">Submitted Jan 23, 2026 · 11:44 AM</span>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

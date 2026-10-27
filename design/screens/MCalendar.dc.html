@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile calendar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div style="position:absolute;left:0;bottom:0;z-index:2"><dc-import name="MTabBar" active="more" hint-size="390px,96px"></dc-import></div>
+<div style="height:844px;overflow-y:auto;box-sizing:border-box;padding:52px 18px 120px;display:flex;flex-direction:column;gap:14px">
+
+<div style="display:flex;align-items:center;gap:10px">
+<a href="MMore.dc.html" aria-label="Back to More" style="width:44px;height:44px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;flex:1;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:34px;line-height:1;font-weight:700;letter-spacing:-0.04em">Calendar</h1>
+<button type="button" aria-label="Schedule meeting" style="width:48px;height:48px;border:0;border-radius:50%;background:#FFD43B;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<p style="margin:0 4px;font-size:14px;color:#4D4A44">Schedule and manage team meetings</p>
+
+<section aria-labelledby="mc-month" style="padding:16px;border-radius:26px;background:#FFFFFF;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:6px">
+<h2 id="mc-month" style="margin:0;flex:1;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:22px;font-weight:700">July 2026</h2>
+<button type="button" aria-label="Previous month" style="width:44px;height:44px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+<button type="button" aria-label="Next month" style="width:44px;height:44px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
+<sc-for list="{{dow}}" as="d" hint-placeholder-count="7"><span style="text-align:center;padding:4px 0;font-size:11.5px;font-weight:600;color:#6A665F">{{d}}</span></sc-for>
+<sc-for list="{{cells}}" as="c" hint-placeholder-count="35"><span style="height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:13.5px;font-weight:600;background:{{c.bg}}">{{c.day}}</span></sc-for>
+</div>
+</section>
+
+<sc-for list="{{bookings}}" as="b" hint-placeholder-count="2">
+<article style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:26px;background:{{b.bg}};color:{{b.fg}}">
+<div style="display:flex;gap:14px;align-items:flex-start">
+<div style="flex:none;width:48px;display:flex;flex-direction:column;align-items:center"><span style="font-size:11px;font-weight:600;letter-spacing:0.08em;opacity:0.75">JUL</span><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:32px;line-height:1;font-weight:700">{{b.day}}</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><h2 style="margin:0;font-size:17px;font-weight:700">{{b.title}}</h2><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:13px;font-weight:600">{{b.time}}</span><span style="font-size:12.5px;opacity:0.8">One-on-One Booking · Scheduled</span></div>
+</div>
+<p style="margin:0;font-size:14px">{{b.desc}} · with {{b.with}} · by {{b.by}}</p>
+<a href="MCalendar.dc.html" style="font-size:13px;font-weight:600;overflow-wrap:anywhere;color:{{b.fg}}">{{b.link}}</a>
+<div style="display:flex;gap:8px"><button type="button" style="flex:1;height:44px;border:0;border-radius:999px;background:{{b.chip}};color:{{b.fg}};font-family:inherit;font-size:14px;font-weight:600">Edit</button><button type="button" style="flex:1;height:44px;border:0;border-radius:999px;background:transparent;color:{{b.del}};font-family:inherit;font-size:14px;font-weight:600">Delete</button></div>
+</article>
+</sc-for>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var cells = [];
+    for (var i = 0; i < 35; i++) { var d = i - 1; var ok = d >= 1 && d <= 31; cells.push({ day: ok ? String(d) : '', bg: !ok ? 'transparent' : (d === 15 || d === 30 ? '#FFD43B' : '#F7F6F2') }); }
+    return {
+      dow: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+      cells: cells,
+      bookings: [
+        { day: '15', title: 'Production testing', time: '16:34 – 18:00', desc: 'Hello', with: 'Blank account', by: 'Dummy pm', link: 'https://us02web.zoom.us/j/82115829086?pwd=vaFzIW4FBrbNM6I39aoSjqCMcKzBZs.1', bg: '#121212', fg: '#FFFFFF', chip: '#2A2926', del: '#FF9A8F' },
+        { day: '30', title: 'Test me', time: '00:04 – 01:02', desc: 'Trick', with: 'Blank account', by: 'Olubukola Ige', link: 'Marketing Emails for the Upsell One-on-One Coaching Offer', bg: '#FFFFFF', fg: '#121212', chip: '#EFEDE7', del: '#C0362C' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

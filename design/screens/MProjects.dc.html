@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile projects</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div style="position:absolute;left:0;bottom:0;z-index:2"><dc-import name="MTabBar" active="projects" hint-size="390px,96px"></dc-import></div>
+<div style="height:844px;overflow-y:auto;box-sizing:border-box;padding:56px 0 120px;display:flex;flex-direction:column;gap:16px">
+
+<div style="padding:0 18px;display:flex;align-items:center;justify-content:space-between">
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:40px;line-height:1;font-weight:700;letter-spacing:-0.04em">Projects</h1>
+<button type="button" aria-label="New project" style="width:48px;height:48px;border:0;border-radius:50%;background:#FFD43B;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+
+<label style="margin:0 18px;display:flex;align-items:center;gap:10px;height:50px;padding:0 18px;border-radius:999px;background:#FFFFFF;color:#6A665F"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg><input type="search" aria-label="Search projects by name" placeholder="Search projects by name" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font-family:inherit;font-size:15px;color:#121212"></label>
+
+<div style="display:flex;gap:10px;overflow-x:auto;padding:0 18px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="3">
+<div style="flex:none;width:140px;display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:22px;background:{{s.bg}};color:{{s.fg}}">
+<span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:38px;line-height:1;font-weight:700">{{s.value}}</span>
+<span style="font-size:13px;font-weight:600;line-height:1.3">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+
+<div role="group" aria-label="Category" style="display:flex;gap:8px;overflow-x:auto;padding:0 18px">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="4"><button type="button" aria-pressed="{{c.on}}" style="flex:none;height:42px;padding:0 16px;border:0;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;background:{{c.bg}};color:{{c.fg}}">{{c.label}}</button></sc-for>
+</div>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<section style="display:flex;flex-direction:column;gap:8px;padding:0 18px">
+<h2 style="margin:8px 4px 0;display:flex;align-items:baseline;gap:8px;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:22px;font-weight:700">{{g.name}}<span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:13px;font-weight:600;color:#6A665F">{{g.count}}</span></h2>
+<sc-for list="{{g.items}}" as="p" hint-placeholder-count="2">
+<a href="MProject.dc.html" style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:22px;background:#FFFFFF;text-decoration:none;color:#121212">
+<span style="flex:none;width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:16px;font-weight:700;background:{{g.tile}};color:{{g.tileFg}}">{{p.ini}}</span>
+<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:16px;font-weight:700">{{p.name}}</span><span style="font-size:13px;font-weight:600;color:{{p.noteFg}}">{{p.note}}</span></span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8A82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+</a>
+</sc-for>
+<a href="MProjects.dc.html" style="align-self:flex-start;padding:8px 4px;font-size:14px;font-weight:600">View all {{g.count}}</a>
+</section>
+</sc-for>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function chip(l, on) { return { label: l, on: on ? 'true' : 'false', bg: on ? '#121212' : '#FFFFFF', fg: on ? '#FFFFFF' : '#4D4A44' }; }
+    function done(n, i) { return { name: n, ini: i, note: 'Completed · 100%', noteFg: '#1F7A4A' }; }
+    function warn(n, i, f) { return { name: n, ini: i, note: f, noteFg: '#8A5A00' }; }
+    return {
+      stats: [
+        { value: '42', label: 'Projects past deadline', bg: '#121212', fg: '#FFD43B' },
+        { value: '5', label: 'No activity for 10+ days', bg: '#FFFFFF', fg: '#121212' },
+        { value: '0', label: 'Completed this week', bg: '#FFFFFF', fg: '#121212' }
+      ],
+      chips: [ chip('All', true), chip('Website Development · 7', false), chip('DPL Outright · 16', false), chip('DPL Partnership · 8', false) ],
+      groups: [
+        { name: 'Website Development', count: '7', tile: '#FFD43B', tileFg: '#121212', items: [ done('QueenbodySecret', 'QS'), done('TopMart', 'TM'), done('Oladoyin taiwo', 'OT'), done('Adan Idet', 'AI') ] },
+        { name: 'DPL Outright', count: '16', tile: '#121212', tileFg: '#FFD43B', items: [ warn('Temitope Oyewole', 'TO', 'No tasks assigned'), warn('Dr Gloria Esoimeme', 'GE', 'No work activity for 1+ week') ] },
+        { name: 'DPL Partnership', count: '8', tile: '#DCE6F7', tileFg: '#1E4797', items: [ warn('SALAMAT', 'SA', 'No work activity for 1+ week') ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
