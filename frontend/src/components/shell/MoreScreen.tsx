@@ -30,7 +30,10 @@ export function MoreScreen({
   const issues = settings?.pages.find((p) => p.href === '/dashboard/issues');
   const tiles = [
     ...sections.map((s) => ({ key: s.key as SectionKey | 'issue', label: s.label, sub: s.sub, href: s.href })),
-    ...(issues ? [{ key: 'issue' as const, label: issues.label, sub: 'Bugs and suggestions', href: issues.href }] : []),
+    // Technical support manage reports on their own page; everyone else reports from Settings.
+    issues
+      ? { key: 'issue' as const, label: issues.label, sub: 'Bugs and suggestions', href: issues.href }
+      : { key: 'issue' as const, label: 'Report an issue', sub: 'Bugs and suggestions', href: '/dashboard/settings#report' },
   ];
   const name = `${user.first_name} ${user.last_name}`.trim() || user.username;
 

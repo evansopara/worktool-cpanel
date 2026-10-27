@@ -139,6 +139,7 @@ const sops: { id: number; title: string; description: string | null; category: s
   ] },
   { id: 2, title: 'Client complaints', category: 'Clients', description: 'Acknowledge within an hour, resolve or escalate within a day.', segments: [] },
 ];
+const issues = [{ id: 1, title: 'Not able to resolve staff issues', description: 'I need to have access to close off staff issues', status: 'closed', created_at: ago(40) }];
 let noteSeq = 4;
 const notes = [
   { id: 1, title: 'Monday priorities', content: 'Chase TopMart content\nApprove Q4 ad budget\nInterview for design intern', color: 'bg-yellow-50 border-yellow-200', updated_at: ago(0.1) },
@@ -402,6 +403,13 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
       if (method === 'delete') sop.segments = sop.segments.filter((g) => g.id !== Number(m![2]));
       return ok(config, {});
     }
+    if (method === 'get' && url === '/issues') return ok(config, issues);
+    if (method === 'post' && url === '/issues') {
+      issues.unshift({ id: Date.now(), title: body.title, description: body.description, status: 'pending', created_at: new Date().toISOString() });
+      return ok(config, issues[0]);
+    }
+    if (method === 'put' && url === '/auth/profile') return ok(config, { ...people.ige, ...body });
+    if (method === 'post' && url === '/auth/change-password') return ok(config, {});
     if (method === 'get' && url === '/notes') return ok(config, notes);
     if (method === 'post' && url === '/notes') {
       notes.unshift({ id: noteSeq++, title: body.title, content: body.content, color: body.color, updated_at: new Date().toISOString() });
