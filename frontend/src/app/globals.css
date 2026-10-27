@@ -35,6 +35,7 @@
   --color-missed: #C0362C;
   --color-missed-tint: #FBE7E4;
   --color-missed-on-dark: #FF9A8F;
+  --color-missed-line-dark: #4A2723; /* outline of Delete on dark cards */
   --color-pending: #8A5A00;
   --color-pending-tint: #FCF0CC;
   --color-pending-ink: #5C3C00;

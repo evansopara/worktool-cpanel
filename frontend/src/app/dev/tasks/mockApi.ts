@@ -79,6 +79,35 @@ function seed(): MockTask[] {
 }
 
 let tasks = seed();
+let plan = 5; // deliverables done in the sample project plan
+const chat = [
+  { id: 1, content: 'Can we start with the SMTP for this site? https://queenbodysecret.com/', sender_id: 2, sender: { id: 2, first_name: 'Sandra', last_name: 'Mike' }, created_at: new Date(Date.now() - 4 * 3600_000).toISOString() },
+  { id: 2, content: 'Good morning, What do you want to achieve?', sender_id: 13, sender: { id: 13, first_name: 'Shittu', last_name: 'Mubaraq' }, created_at: new Date(Date.now() - 3 * 3600_000).toISOString() },
+  { id: 3, content: 'What is the update?', sender_id: 2, sender: { id: 2, first_name: 'Sandra', last_name: 'Mike' }, created_at: new Date(Date.now() - 2 * 3600_000).toISOString() },
+];
+
+function sampleProjects() {
+  const day = 86400000;
+  const p = (id: number, name: string, category: string, status: string, progress: number, endDays: number, idleDays = 0) => ({
+    id, name, category, status, progress, manager_id: 2,
+    start_date: new Date(Date.now() - 30 * day).toISOString(), end_date: new Date(Date.now() + endDays * day).toISOString(),
+    created_at: new Date(Date.now() - 40 * day).toISOString(), updated_at: new Date(Date.now() - idleDays * day).toISOString(),
+  });
+  return [
+    p(1, 'WC Digital Agency', 'website_development', 'active', 60, 10),
+    p(5, 'TopMart', 'website_development', 'active', 100, -5),
+    p(20, 'QueenbodySecret', 'website_development', 'completed', 100, -20, 3),
+    p(21, 'Oladoyin taiwo', 'website_development', 'completed', 100, -25, 20),
+    p(22, 'Adan Idet', 'website_development', 'completed', 100, -30, 20),
+    p(23, 'Royal Bakes', 'website_development', 'active', 35, -3, 12),
+    p(12, 'Temitope Oyewole', 'dpl_outright', 'pending', 0, -8),
+    p(13, 'Dr Gloria Esoimeme', 'dpl_outright', 'pending', 10, 12),
+    p(2, 'Contour Fajaas Africa', 'dpl_outright', 'active', 40, -2, 11),
+    p(11, 'SALAMAT', 'dpl_partnership', 'pending', 0, 20),
+    p(3, 'Marketing Team', 'direct_marketing', 'active', 20, 40),
+    p(4, 'Abiola Adediran', 'support_maintenance', 'active', 50, 15),
+  ];
+}
 let runningSince: Record<number, number> = {};
 const iso = (mins: number) => new Date(Date.now() + mins * MIN).toISOString();
 const name = (p: { first_name: string; last_name: string }) => `${p.first_name} ${p.last_name}`;
@@ -210,7 +239,32 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
       });
     }
     if (method === 'get' && url === '/deadline-requests') return ok(config, extensions());
-    if (method === 'get' && url === '/projects') return ok(config, projects);
+    if (method === 'get' && url === '/projects') return ok(config, sampleProjects());
+    if (method === 'get' && (m = url.match(/^\/projects\/(\d+)\/messages$/))) return ok(config, chat);
+    if (method === 'post' && (m = url.match(/^\/projects\/(\d+)\/messages$/))) {
+      chat.push({ id: chat.length + 1, content: body.content, sender_id: viewerId, sender: { id: viewerId, first_name: viewerId >= 10 ? 'Victor' : 'Olubukola', last_name: viewerId >= 10 ? 'Adeleye' : 'Ige' }, created_at: new Date().toISOString() });
+      return ok(config, {});
+    }
+    if (method === 'get' && (m = url.match(/^\/projects\/(\d+)$/))) {
+      const p = sampleProjects().find((x) => x.id === Number(m![1])) ?? fail(config, 404, { message: 'Not found' });
+      return ok(config, {
+        ...p,
+        description: 'Website Development Project',
+        manager: people.titi,
+        members: [people.titi, people.victor, people.ashe, people.emma].map((u, i) => ({ id: i + 1, project_id: p.id, user_id: u.id, user: { ...u, role: u.id >= 10 ? 'staff' : 'project_manager' } })),
+        tasks: tasks.filter((t) => t.project.id === p.id),
+        resources: [{ id: 1, project_id: p.id, name: 'Brand guidelines', url: 'https://example.com', type: 'document', uploaded_by: 2, created_at: p.created_at }],
+        plans: [{
+          id: 1, project_id: p.id, title: 'Standard eCommerce website Development', description: 'To build a functional standard ecommerce website in 13days',
+          deliverables: ['Website Development', 'Review + SMTP', 'Website adjustment', 'Final review', 'Walkthrough with client', 'Client Followup on reviews +Feedback & Missing content (if need be)', 'Adjustment from Client feedback']
+            .map((title, i) => ({ id: i + 1, plan_id: 1, title, status: i < plan ? 'completed' : 'pending' })),
+        }],
+      });
+    }
+    if (method === 'put' && (m = url.match(/^\/projects\/\d+\/plans\/\d+\/deliverables\/(\d+)$/))) {
+      plan = body.status === 'completed' ? Math.max(plan, Number(m[1])) : Number(m[1]) - 1;
+      return ok(config, {});
+    }
     if (method === 'get' && url === '/users') return ok(config, Object.values(people).map((u) => ({ ...u, role: u.id >= 10 ? 'staff' : 'project_manager' })));
     if (method === 'get' && url === '/notifications/unread-count') return ok(config, { count: 2 });
     if (method === 'get' && (m = url.match(/^\/tasks\/(\d+)\/events$/))) return ok(config, events(find(m[1])));

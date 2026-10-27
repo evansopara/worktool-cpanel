@@ -309,7 +309,7 @@ function Pipeline({ pipeline }: { pipeline?: HomeData['pipeline'] }) {
             {p.active.items.length === 0
               ? empty('No active projects')
               : p.active.items.map((x) => (
-                  <Link key={x.id} href="/dashboard/projects" className={card}>
+                  <Link key={x.id} href={`/dashboard/projects?id=${x.id}`} className={card}>
                     <span className="text-[15px] font-bold">{x.name}</span>
                     <span className="text-[13px] text-ink-3">{x.category}</span>
                     {x.flag && (
@@ -326,7 +326,7 @@ function Pipeline({ pipeline }: { pipeline?: HomeData['pipeline'] }) {
             {p.pending.items.length === 0
               ? empty('No pending projects')
               : p.pending.items.map((x) => (
-                  <Link key={x.id} href="/dashboard/projects" className={card}>
+                  <Link key={x.id} href={`/dashboard/projects?id=${x.id}`} className={card}>
                     <span className="text-[15px] font-bold">{x.name}</span>
                     <span className="text-[13px] text-ink-3">{x.category}</span>
                     {x.flag && (
@@ -348,7 +348,7 @@ function Pipeline({ pipeline }: { pipeline?: HomeData['pipeline'] }) {
             {p.completed.items.length === 0
               ? empty('No completed projects')
               : p.completed.items.map((x) => (
-                  <Link key={x.id} href="/dashboard/projects" className={cn(card, 'flex-row items-center gap-3 py-3')}>
+                  <Link key={x.id} href={`/dashboard/projects?id=${x.id}`} className={cn(card, 'flex-row items-center gap-3 py-3')}>
                     <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-ink text-yellow">
                       <Check className="size-3.5" strokeWidth={2.6} aria-hidden="true" />
                     </span>

@@ -40,6 +40,8 @@ export type ListParams = {
   from?: string;
   to?: string;
   status?: string;
+  /** Tasks of one project (project detail) */
+  project_id?: number;
   page: number;
 };
 
