@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, BellRing, CheckCheck, TriangleAlert, Video } from 'lucide-react';
+import { Bell, CheckCheck, Video } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
-import { useNotificationAlert } from '@/providers/NotificationAlertProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -24,7 +22,6 @@ interface HeaderProps {
 export default function Header({ title }: HeaderProps) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const { permission, requestPermission, pushError, retryPush } = useNotificationAlert();
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['notifications'],
@@ -104,20 +101,6 @@ export default function Header({ title }: HeaderProps) {
       )}
 
       <div className="flex items-center gap-3 shrink-0">
-
-        {/* Prompt to enable browser notifications, until granted or denied */}
-        {permission === 'default' && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={requestPermission}
-            title="Get a browser alert and sound when new notifications arrive"
-          >
-            <BellRing className="w-3.5 h-3.5" />
-            Enable alerts
-          </Button>
-        )}
 
         {/* Notification bell dropdown */}
         <DropdownMenu
@@ -220,21 +203,6 @@ export default function Header({ title }: HeaderProps) {
       </div>
     </header>
 
-    {/* TEMPORARY: push-notification debugging bar. Stays until push setup succeeds. */}
-    {pushError && (
-      <div className="flex items-start gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-800 shrink-0">
-        <TriangleAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-        <p className="flex-1 min-w-0 break-words">
-          <span className="font-semibold">Push setup failed</span> (debug build 2) at {pushError}
-        </p>
-        <button
-          className="shrink-0 rounded border border-red-300 px-2 py-0.5 font-medium hover:bg-red-100"
-          onClick={retryPush}
-        >
-          Retry
-        </button>
-      </div>
-    )}
     </>
   );
 }

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { notificationsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { subscribeToPush, type PushResult } from '@/lib/push';
+import { subscribeToPush, unsubscribeFromPush, type PushResult } from '@/lib/push';
 import type { Notification as AppNotification } from '@/types';
 
 const SOUND_URL = '/sounds/notification.wav';
@@ -13,6 +13,17 @@ const SOUND_URL = '/sounds/notification.wav';
 // TEMPORARY push debugging: the last push-setup failure is kept on the device
 // and shown under the header until push setup succeeds.
 const PUSH_ERROR_KEY = 'push_debug_error';
+// Set when someone turns alerts off in Settings: no push, pop-ups or sound on
+// this device until they turn them back on.
+const ALERTS_OFF_KEY = 'alerts_off';
+
+function readAlertsOff(): boolean {
+  try {
+    return localStorage.getItem(ALERTS_OFF_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function readStoredPushError(): string | null {
   try {
@@ -29,6 +40,9 @@ interface NotificationAlertContextType {
   requestPermission: () => Promise<void>;
   pushError: string | null;
   retryPush: () => Promise<void>;
+  /** Alerts are on for this device: permission granted and not turned off in Settings. */
+  enabled: boolean;
+  setEnabled: (on: boolean) => Promise<void>;
 }
 
 const NotificationAlertContext = createContext<NotificationAlertContextType | null>(null);
@@ -39,6 +53,7 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
   const seenIds = useRef<Set<number> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [alertsOff, setAlertsOff] = useState(false);
   // True once this device is subscribed to push: the service worker then
   // delivers every notification, so the poller below must not alert again
   // (iOS ignores the shared tag and would show both).
@@ -62,6 +77,7 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
 
   useEffect(() => {
     setPushError(readStoredPushError());
+    setAlertsOff(readAlertsOff());
     if (typeof window === 'undefined' || !('Notification' in window)) {
       setPermission('unsupported');
       return;
@@ -84,9 +100,9 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
   // browser rotated while the app was closed.
   const userId = user?.id;
   useEffect(() => {
-    if (!userId || permission !== 'granted') return;
+    if (!userId || permission !== 'granted' || alertsOff) return;
     subscribeToPush().then(recordPushResult);
-  }, [userId, permission, recordPushResult]);
+  }, [userId, permission, alertsOff, recordPushResult]);
 
   const requestPermission = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -137,7 +153,7 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
     const fresh = notifications.filter((n) => !n.read && !seenIds.current!.has(n.id));
     notifications.forEach((n) => seenIds.current!.add(n.id));
 
-    if (fresh.length === 0 || pushActive.current) return;
+    if (fresh.length === 0 || pushActive.current || alertsOff) return;
 
     audioRef.current?.play().catch(() => {});
 
@@ -158,10 +174,34 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
         }
       });
     }
-  }, [notifications, user, permission]);
+  }, [notifications, user, permission, alertsOff]);
+
+  const setEnabled = useCallback(
+    async (on: boolean) => {
+      try {
+        if (on) localStorage.removeItem(ALERTS_OFF_KEY);
+        else localStorage.setItem(ALERTS_OFF_KEY, '1');
+      } catch {}
+      setAlertsOff(!on);
+      if (on) {
+        if (Notification.permission === 'granted') {
+          if (recordPushResult(await subscribeToPush())) toast.success('Notifications are on for this device.');
+          else toast.warning('Alerts are on, but push could not be set up. You’ll still get alerts while the app is open.');
+        } else {
+          await requestPermission();
+        }
+      } else {
+        pushActive.current = false;
+        await unsubscribeFromPush();
+        toast.success('Notifications are off for this device.');
+      }
+    },
+    [recordPushResult, requestPermission],
+  );
+  const enabled = permission === 'granted' && !alertsOff;
 
   return (
-    <NotificationAlertContext.Provider value={{ permission, requestPermission, pushError, retryPush }}>
+    <NotificationAlertContext.Provider value={{ permission, requestPermission, pushError, retryPush, enabled, setEnabled }}>
       {children}
     </NotificationAlertContext.Provider>
   );

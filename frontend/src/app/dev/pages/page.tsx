@@ -56,7 +56,7 @@ function Preview() {
 
   return (
     <AuthContext.Provider value={{ user, token: null, loading: false, login: async () => {}, logout: async () => {}, setUser: () => {} }}>
-      <AppShell user={user} unread={2} badges={role === 'staff' ? { tasks: 2, inbox: 3, penalties: 1 } : { tasks: 4, inbox: 1, people: 3, clients: 2, reviews: 1 }} onSignOut={() => {}} previewPath={`/dashboard/${key}`}>
+      <AppShell user={user} unread={2} badges={role === 'staff' ? { inbox: 3, penalties: 1 } : { inbox: 1, people: 3, clients: 2, reviews: 1 }} onSignOut={() => {}} previewPath={`/dashboard/${key}`}>
         <Page />
       </AppShell>
     </AuthContext.Provider>

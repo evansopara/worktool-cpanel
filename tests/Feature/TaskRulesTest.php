@@ -476,6 +476,17 @@ class TaskRulesTest extends TestCase
         $this->getJson("/api/tasks/{$task->id}/events")->assertForbidden();
     }
 
+    public function test_assigning_while_creating_is_not_counted_as_a_change(): void
+    {
+        Sanctum::actingAs($this->manager);
+        $id = $this->postJson('/api/tasks', ['title' => 'Logo', 'project_id' => $this->projectId, 'assignee_id' => $this->staff->id])->assertCreated()->json('id');
+        $this->assertSame(0, $this->getJson("/api/tasks/{$id}/events")->json('summary.changes.edits'));
+
+        Carbon::setTestNow('2026-10-26 12:00:00');
+        $this->putJson("/api/tasks/{$id}", ['title' => 'Logo files'])->assertOk();
+        $this->assertSame(1, $this->getJson("/api/tasks/{$id}/events")->json('summary.changes.edits'));
+    }
+
     public function test_export_covers_every_matching_task(): void
     {
         foreach (range(1, 12) as $i) {
