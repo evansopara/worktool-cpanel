@@ -11,6 +11,7 @@ import { authApi, issuesApi } from '@/lib/api';
 import { cn, roleLabel } from '@/lib/utils';
 import { errorText } from '@/lib/tasks';
 import { useThemeChoice, type ThemeChoice } from '@/lib/theme';
+import { useNotificationAlert } from '@/providers/NotificationAlertProvider';
 import { initials } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
 
@@ -29,6 +30,7 @@ export function SettingsScreen({ user, onUserChange }: { user: User; onUserChang
     ['profile', 'Profile'],
     ['password', 'Password'],
     ['appearance', 'Appearance'],
+    ['notifications', 'Notifications'],
     ['report', 'Report an issue'],
   ];
 
@@ -67,6 +69,7 @@ export function SettingsScreen({ user, onUserChange }: { user: User; onUserChang
         <Password />
         <Appearance />
       </div>
+      <Notifications />
       <Report />
     </PageBody>
   );
@@ -181,6 +184,62 @@ function Appearance() {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+function Notifications() {
+  const { permission, enabled, setEnabled, pushError, retryPush } = useNotificationAlert();
+  const [busy, setBusy] = useState(false);
+  const blocked = permission === 'denied';
+  const unsupported = permission === 'unsupported';
+  const toggle = async () => {
+    setBusy(true);
+    await setEnabled(!enabled);
+    setBusy(false);
+  };
+  const note = unsupported
+    ? 'This browser can’t show notifications. On iPhone, add the app to your Home Screen first, then open it from there.'
+    : blocked
+      ? 'Notifications are blocked for this site. Allow them in your browser’s site settings, then come back and turn this on.'
+      : enabled
+        ? 'You’ll get a notification on this device for new tasks, approvals, memos and deadlines, even when the app is closed.'
+        : 'Turn on to get a notification on this device for new tasks, approvals, memos and deadlines.';
+
+  return (
+    <section id="notifications" aria-labelledby="h-notif" className={cn(card, 'scroll-mt-6')}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <h2 id="h-notif" className={h2}>
+            Notifications
+          </h2>
+          <p className="m-0 max-w-[560px] text-sm leading-normal text-ink-2">{note}</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-labelledby="h-notif"
+          disabled={busy || blocked || unsupported}
+          onClick={toggle}
+          className={cn(
+            'relative mt-1 h-8 w-[52px] shrink-0 cursor-pointer rounded-full border-0 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40',
+            enabled ? 'bg-ink' : 'bg-stone',
+          )}
+        >
+          <span aria-hidden="true" className={cn('absolute top-1 left-1 size-6 rounded-full transition-transform', enabled ? 'translate-x-5 bg-yellow' : 'bg-surface shadow-sm')} />
+        </button>
+      </div>
+      {enabled && pushError && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[18px] bg-missed-tint px-4 py-3 text-[13px] text-missed">
+          <span className="min-w-0 flex-1 break-words">
+            <strong>Push couldn’t be set up</strong> ({pushError}). You’ll still get alerts while the app is open.
+          </span>
+          <button type="button" onClick={retryPush} className="h-9 cursor-pointer rounded-full border-0 bg-surface px-3.5 font-ui text-[13px] font-semibold text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink">
+            Try again
+          </button>
+        </div>
+      )}
     </section>
   );
 }

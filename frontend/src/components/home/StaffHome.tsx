@@ -10,7 +10,7 @@ import { DateRange, Pagination, ScheduleBoxes, SearchField, SegmentedFilter, Sta
 import { PageBody } from '@/components/shell/PageHeader';
 import { DEADLINE_PASSED, deadlinePassed, fmtMinutes, fmtTime, fmtWhen, homeApi, isMissed, statusInfo, taskApi, type HomeData, type TaskListItem } from '@/lib/tasks';
 import { LiveClock, TimerDot } from '@/components/task/LiveClock';
-import { StaffTaskTable, toActionTask } from '@/components/task/TaskRows';
+import { StaffTaskCard, StaffTaskTable, toActionTask } from '@/components/task/TaskRows';
 import { useTaskWorkspace } from '@/components/task/useTaskWorkspace';
 import { CardTitle, Greeting, MobileTopBar } from './parts';
 
@@ -154,39 +154,12 @@ export function StaffHome({ user }: { user: User }) {
             />
           </div>
 
-          {/* Mobile rows */}
-          <div className="flex flex-col overflow-hidden rounded-[22px] bg-surface lg:hidden">
-            {tasks.length === 0 && <p className="m-0 p-5 text-center text-sm text-ink-3">{list.isLoading ? 'Loading…' : 'No tasks here.'}</p>}
-            {tasks.map((t) => {
-              const s = statusInfo(t.status);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => ws.openPanel(t.id)}
-                  className="flex cursor-pointer flex-col gap-1.5 border-0 border-b border-surface-2 bg-transparent px-3.5 py-3 text-left font-ui text-ink outline-none last:border-b-0 focus-visible:bg-surface-2"
-                >
-                  <span className="flex items-start justify-between gap-2">
-                    <span className="flex min-w-0 flex-col gap-px">
-                      <span className="text-[14.5px] font-bold">{t.title}</span>
-                      <span className="text-xs text-ink-3">{t.project?.name}</span>
-                    </span>
-                    <StatusPill tone={s.tone} className="shrink-0 px-2 py-[3px] text-[11px]">
-                      {s.label}
-                    </StatusPill>
-                  </span>
-                  <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-2">
-                    <span>
-                      <strong className="text-ink">Start</strong> {fmtWhen(t.start_date)}
-                    </span>
-                    <span className={isMissed(t) ? 'text-missed' : ''}>
-                      <strong>Deadline</strong> {fmtWhen(t.deadline)}
-                    </span>
-                    <LiveClock seconds={t.logged_seconds} running={t.is_timer_running} since={list.dataUpdatedAt} />
-                  </span>
-                </button>
-              );
-            })}
+          {/* Mobile cards, as on the Tasks page */}
+          <div className="flex flex-col gap-2.5 lg:hidden">
+            {tasks.length === 0 && <p className="m-0 rounded-[22px] bg-surface p-5 text-center text-sm text-ink-3">{list.isLoading ? 'Loading…' : 'No tasks here.'}</p>}
+            {tasks.map((t) => (
+              <StaffTaskCard key={t.id} t={t} since={list.dataUpdatedAt} actions={ws.actions} onOpen={ws.openPanel} onRequestExtension={ws.requestExtension} />
+            ))}
           </div>
           {total > 0 && <Pagination variant="mobile" className="lg:hidden" page={page} total={total} onPageChange={setPage} />}
         </section>

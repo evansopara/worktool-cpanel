@@ -2,9 +2,9 @@
 
 import { FileText, Pause, Pencil, Play, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, IconButton, ScheduleBoxes, ScheduleInline, StatusPill } from '@/components/wc';
-import { DEADLINE_PASSED, deadlinePassed, fmtClock, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
-import { LiveClock, TimerDot, useLiveSeconds } from './LiveClock';
+import { IconButton, ScheduleInline, StatusPill } from '@/components/wc';
+import { DEADLINE_PASSED, deadlinePassed, fmtClock, notStarted, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
+import { LiveClock, TimerDot } from './LiveClock';
 import type { ActionTask, useTaskActions } from './useTaskActions';
 
 // Task lists: desktop tables (Tasks, StaffTasks) and mobile cards (MTasks, MStaffTasks).
@@ -136,10 +136,10 @@ export function ManagerTaskTable({
 
 // ── Staff: desktop table ──────────────────────────────────────────────
 
-function TimerButtons({ t, actions, size }: { t: TaskListItem; actions: Actions; size: 'sm' | 'md' }) {
+function TimerButtons({ t, actions, size }: { t: TaskListItem; actions: Actions; size: 'sm' | 'md' | 'lg' }) {
   const locked = !t.is_timer_running ? opensAt(t) : null;
   const passed = deadlinePassed(t);
-  const h = size === 'sm' ? 'h-[38px] px-3.5 text-[13px]' : 'h-10 px-3.5 text-[13.5px]';
+  const h = size === 'sm' ? 'h-[38px] px-3.5 text-[13px]' : size === 'md' ? 'h-10 px-3.5 text-[13.5px]' : 'h-11 px-4 text-[14.5px] [&_svg]:size-3';
   const a = toActionTask(t);
   return (
     <>
@@ -206,7 +206,14 @@ export function StaffTaskTable({
             const note = staffNote(t);
             const missedNoRequest = t.status === 'deadline_missed' && !t.pending_extension;
             return (
-              <li key={t.id} className={cn('grid items-center gap-x-4 gap-y-1.5 border-t border-line px-1 py-3.5', STAFF_COLS)}>
+              <li
+                key={t.id}
+                className={cn(
+                  'grid items-center gap-x-4 gap-y-1.5 border-t border-line px-1 py-3.5',
+                  notStarted(t) && '-mx-2 rounded-[18px] border-t-transparent bg-unstarted px-3',
+                  STAFF_COLS,
+                )}
+              >
                 <TitleCell
                   t={t}
                   onOpen={onOpen}
@@ -260,7 +267,70 @@ export function StaffTaskTable({
   );
 }
 
-// ── Manager: mobile card ──────────────────────────────────────────────
+// ── Mobile card (staff and managers) ──────────────────────────────────
+
+/** "Oct 26, 2026" + "1:01 PM – 4:00 PM"; both dates when the task spans days. */
+function scheduleLines(start: string | null, deadline: string | null): { day: string; time: string } {
+  if (!start && !deadline) return { day: 'No dates set', time: '' };
+  const day = (d: Date, year = true) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}) });
+  if (!start || !deadline) {
+    const only = new Date((deadline ?? start)!);
+    return { day: day(only), time: `${deadline ? 'Due' : 'Starts'} ${fmtTime(deadline ?? start)}` };
+  }
+  const a = new Date(start);
+  const b = new Date(deadline);
+  const sameDay = a.toDateString() === b.toDateString();
+  return {
+    day: sameDay ? day(a) : `${day(a, a.getFullYear() !== b.getFullYear())} – ${day(b)}`,
+    time: `${fmtTime(start)} – ${fmtTime(deadline)}`,
+  };
+}
+
+/**
+ * One task on phones (Tasks and Home): project and title on the left with the
+ * actions under them; status, timer and schedule on the right.
+ */
+function TaskCard({ t, since, onOpen, meta, actions, footer, shaded }: { t: TaskListItem; since: number; onOpen: (id: number) => void; meta?: string; actions: React.ReactNode; footer?: React.ReactNode; shaded?: boolean }) {
+  const s = statusInfo(t.status);
+  const missed = isMissed(t);
+  const when = scheduleLines(t.start_date, t.deadline);
+  return (
+    <article className={cn('flex flex-col gap-3.5 rounded-[26px] p-4 text-ink', shaded ? 'bg-unstarted' : 'bg-surface')}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="truncate text-[13px] font-semibold text-ink-2">
+            {t.project?.name}
+            {meta && <span className="font-normal text-ink-3"> · {meta}</span>}
+          </span>
+          <h2 className="m-0 text-[17px] leading-[1.25] font-bold">
+            <button type="button" onClick={() => onOpen(t.id)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-ui text-[17px] leading-[1.25] font-bold text-ink outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink">
+              {t.title}
+            </button>
+          </h2>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <StatusPill tone={s.tone} className="text-[11px] tracking-[0.06em] uppercase">
+            {s.label}
+          </StatusPill>
+          <span className={cn('flex items-center gap-2', t.is_timer_running ? 'text-review' : 'text-ink')}>
+            {t.is_timer_running && <span aria-hidden="true" className="size-2 rounded-full bg-review animate-wcpulse motion-reduce:animate-none" />}
+            <LiveClock seconds={t.logged_seconds} running={t.is_timer_running} since={since} className="text-[21px] leading-none font-semibold" />
+          </span>
+        </div>
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex shrink-0 flex-nowrap gap-2">{actions}</div>
+        <span className="flex min-w-0 flex-col items-end gap-0.5 text-right">
+          <span className="text-[12.5px] text-ink-3">{when.day}</span>
+          {when.time && <span className={cn('text-[13px] leading-snug font-bold', missed ? 'text-missed' : 'text-ink')}>{when.time}</span>}
+        </span>
+      </div>
+      {footer}
+    </article>
+  );
+}
+
+const pillButton = 'inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-full border-0 px-4 font-ui text-[14.5px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-1 [&_svg]:size-3.5';
 
 export function ManagerTaskCard({
   t,
@@ -275,51 +345,26 @@ export function ManagerTaskCard({
   onEdit: (id: number) => void;
   onDelete: (t: TaskListItem) => void;
 }) {
-  const s = statusInfo(t.status);
-  const logged = useLiveSeconds(t.logged_seconds, t.is_timer_running, since);
   return (
-    <article className="flex flex-col gap-2.5 rounded-card bg-surface p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[12.5px] font-semibold text-ink-3">{t.project?.name}</span>
-        <StatusPill tone={s.tone}>{s.label}</StatusPill>
-      </div>
-      <h2 className="m-0 text-base leading-[1.4] font-bold">
-        <button type="button" onClick={() => onOpen(t.id)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-ui text-base font-bold text-ink outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink">
-          {t.title}
-        </button>
-      </h2>
-      {t.instructions_preview && (
-        <div className="flex flex-col gap-1.5 rounded-2xl bg-brief-tint px-3.5 py-3">
-          <span className="flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-[0.07em]">
-            <FileText className="size-[13px]" strokeWidth={2} aria-hidden="true" />
-            Instructions
-          </span>
-          <span className="line-clamp-2 text-[13.5px] leading-[1.45]">{t.instructions_preview}</span>
-        </div>
-      )}
-      <ScheduleBoxes start={fmtWhen(t.start_date)} deadline={fmtWhen(t.deadline)} missed={isMissed(t)} />
-      <div className="flex items-center gap-2.5 border-t border-line pt-2.5">
-        <Avatar name={t.assignee?.name ?? '?'} tone="stone" className="size-7 text-[10.5px]" />
-        <span className="flex-1 text-[13.5px] font-semibold">{t.assignee?.name ?? 'Unassigned'}</span>
-        <span className="font-mono text-[12.5px] font-semibold text-ink-2">
-          {fmtClock(logged)} / {fmtMinutes(t.estimate_minutes)}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => onEdit(t.id)} className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border-0 bg-stone font-ui text-sm font-semibold text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink">
-          <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" />
-          Edit
-        </button>
-        <button type="button" onClick={() => onDelete(t)} className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border-0 bg-missed-tint font-ui text-sm font-semibold text-missed outline-none focus-visible:ring-2 focus-visible:ring-ink">
-          <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
-          Delete
-        </button>
-      </div>
-    </article>
+    <TaskCard
+      t={t}
+      since={since}
+      onOpen={onOpen}
+      meta={t.assignee?.name ?? 'Unassigned'}
+      actions={
+        <>
+          <button type="button" onClick={() => onEdit(t.id)} className={cn(pillButton, 'bg-stone text-ink')}>
+            <Pencil strokeWidth={2} aria-hidden="true" />
+            Edit
+          </button>
+          <button type="button" onClick={() => onDelete(t)} aria-label={`Delete ${t.title}`} className={cn(pillButton, 'bg-missed-tint px-3.5 text-missed')}>
+            <Trash2 strokeWidth={2} aria-hidden="true" />
+          </button>
+        </>
+      }
+    />
   );
 }
-
-// ── Staff: mobile card (the running task is the dark card) ────────────
 
 export function StaffTaskCard({
   t,
@@ -334,70 +379,27 @@ export function StaffTaskCard({
   onOpen: (id: number) => void;
   onRequestExtension: (id: number) => void;
 }) {
-  const dark = t.is_timer_running;
-  const s = statusInfo(t.status);
   const note = staffNote(t);
   const missedNoRequest = t.status === 'deadline_missed' && !t.pending_extension;
   return (
-    <article className={cn('flex flex-col gap-3 rounded-card p-[18px]', dark ? 'bg-ink text-white' : 'bg-surface text-ink')}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="m-0 text-[17px] leading-[1.25] font-bold">
-            <button type="button" onClick={() => onOpen(t.id)} className="cursor-pointer border-0 bg-transparent p-0 text-left font-ui text-[17px] font-bold text-inherit outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-yellow">
-              {t.title}
-            </button>
-          </h2>
-          <span className="text-[12.5px] opacity-70">
-            {t.project?.name} · est. {fmtMinutes(t.estimate_minutes)}
-          </span>
-        </div>
-        {dark && t.status === 'in_progress' ? (
-          <span className="shrink-0 rounded-full bg-yellow px-[9px] py-1 text-[11.5px] font-semibold text-ink">{s.label}</span>
-        ) : (
-          <StatusPill tone={s.tone} className="shrink-0 text-[11.5px]">
-            {s.label}
-          </StatusPill>
-        )}
-      </div>
-      {t.status !== 'completed' ? (
-        <div className="flex items-center gap-2">
-          <span className="mr-auto flex items-center gap-2">
-            <TimerDot running={t.is_timer_running} className="size-2" />
-            <LiveClock seconds={t.logged_seconds} running={t.is_timer_running} since={since} className={cn('text-2xl leading-none', dark ? 'text-yellow' : 'text-ink-2')} />
-          </span>
-          <TimerButtons t={t} actions={actions} size="md" />
-        </div>
-      ) : (
-        <span className="text-[13px] font-semibold text-done">Completed · {fmtClock(t.logged_seconds)} logged</span>
-      )}
-      <ScheduleBoxes tone={dark ? 'dark' : 'light'} start={fmtWhen(t.start_date)} deadline={fmtWhen(t.deadline)} missed={isMissed(t)} />
-      {t.has_instructions && (
-        <button
-          type="button"
-          onClick={() => actions.read(toActionTask(t))}
-          className={cn(
-            'flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border-0 px-3 py-2 text-left font-ui text-inherit outline-none focus-visible:ring-2 focus-visible:ring-yellow',
-            dark ? 'bg-dark-2' : 'bg-brief-tint',
-          )}
-        >
-          <FileText className="size-[13px] shrink-0" strokeWidth={2} aria-hidden="true" />
-          <span className="shrink-0 text-[12.5px] font-semibold">Instructions</span>
-          <span className="min-w-0 flex-1 truncate text-[12.5px] opacity-70">{t.instructions_preview}</span>
-          <span className="shrink-0 text-[12.5px] font-semibold underline">Read</span>
-        </button>
-      )}
-      {(note || missedNoRequest) && (
-        <div className="flex flex-wrap items-center gap-2.5">
-          <p className={cn('m-0 text-[12.5px] font-semibold', dark ? 'text-yellow' : (note?.tone ?? 'text-missed'))}>
-            {note?.text ?? 'Deadline missed — ask for more time if you need it.'}
-          </p>
-          {missedNoRequest && (
-            <button type="button" onClick={() => onRequestExtension(t.id)} className="h-9 cursor-pointer rounded-full border-0 bg-stone px-3.5 font-ui text-[13px] font-semibold text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink">
-              Request extension
-            </button>
-          )}
-        </div>
-      )}
-    </article>
+    <TaskCard
+      t={t}
+      since={since}
+      onOpen={onOpen}
+      shaded={notStarted(t)}
+      actions={t.status === 'completed' ? <span className="py-3 text-[13px] font-semibold text-done">Completed · {fmtClock(t.logged_seconds)} logged</span> : <TimerButtons t={t} actions={actions} size="lg" />}
+      footer={
+        (note || missedNoRequest) && (
+          <div className="flex flex-wrap items-center gap-2.5 border-t border-line pt-3">
+            <p className={cn('m-0 flex-1 text-[12.5px] font-semibold', note?.tone ?? 'text-missed')}>{note?.text ?? 'Deadline missed — ask for more time if you need it.'}</p>
+            {missedNoRequest && (
+              <button type="button" onClick={() => onRequestExtension(t.id)} className="h-9 cursor-pointer rounded-full border-0 bg-stone px-3.5 font-ui text-[13px] font-semibold text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink">
+                Request extension
+              </button>
+            )}
+          </div>
+        )
+      }
+    />
   );
 }

@@ -233,6 +233,8 @@ class Task extends Model
             'estimate_minutes' => $this->estimateMinutes(),
             'logged_seconds' => $this->loggedSeconds(),
             'is_timer_running' => (bool) $this->is_timer_running,
+            // Never had its timer run: staff lists shade these (2026-10-28).
+            'has_been_started' => (bool) $this->has_been_started || (int) $this->time_spent > 0 || $this->is_timer_running,
             'timer_start_time' => $this->timer_start_time?->toIso8601String(),
             'has_instructions' => $this->hasInstructions(),
             // One or two lines for the mobile cards; the full text is in the panel.

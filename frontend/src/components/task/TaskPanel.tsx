@@ -59,7 +59,7 @@ function TaskPanel({
 }) {
   const qc = useQueryClient();
   // Staff open on Details (instructions first); managers on History.
-  const [tab, setTab] = useState<'details' | 'history'>(manager ? 'history' : 'details');
+  const [tab, setTab] = useState<'details' | 'history'>('details');
   const [filter, setFilter] = useState<HistoryFilter>('all');
 
   const taskQuery = useQuery({ queryKey: ['task', taskId], queryFn: () => taskApi.get(taskId), refetchInterval: 30_000 });

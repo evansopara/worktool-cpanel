@@ -453,7 +453,7 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
       });
     }
     if (method === 'get' && url === '/support') return ok(config, support);
-    if (method === 'get' && url === '/badges') return ok(config, mine ? { tasks: 2, inbox: 3, penalties: 1, support: 0 } : { tasks: 4, inbox: 1, people: 3, clients: 2, reviews: 1 });
+    if (method === 'get' && url === '/badges') return ok(config, mine ? { inbox: 3, penalties: 1, support: 0 } : { inbox: 1, people: 3, clients: 2, reviews: 1 });
     if (method === 'get' && url === '/notes') return ok(config, notes);
     if (method === 'post' && url === '/notes') {
       notes.unshift({ id: noteSeq++, title: body.title, content: body.content, color: body.color, updated_at: new Date().toISOString() });

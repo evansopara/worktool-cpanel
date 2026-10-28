@@ -118,11 +118,12 @@ class BadgesAndNotificationsTest extends TestCase
         DB::table('staff_queries')->insert(['assigned_to' => $this->staff->id, 'status' => 'pending']);
 
         Sanctum::actingAs($this->manager);
-        $this->getJson('/api/badges')->assertOk()->assertJson(['tasks' => 1, 'people' => 2, 'clients' => 2, 'penalties' => 0]);
+        $this->getJson('/api/badges')->assertOk()->assertJson(['people' => 2, 'clients' => 2, 'penalties' => 0])->assertJsonMissing(['tasks' => 1]);
 
         Sanctum::actingAs($this->staff);
-        // Not started + sent back; 1 unread message + 1 unopened memo; 1 query.
-        $this->getJson('/api/badges')->assertOk()->assertJson(['tasks' => 2, 'inbox' => 2, 'people' => 0, 'penalties' => 1]);
+        // 1 unread message + 1 unopened memo; 1 query. Tasks have no badge.
+        $res = $this->getJson('/api/badges')->assertOk()->assertJson(['inbox' => 2, 'people' => 0, 'penalties' => 1]);
+        $this->assertArrayNotHasKey('tasks', $res->json());
     }
 
     public function test_notifications_link_to_the_page_they_are_about(): void

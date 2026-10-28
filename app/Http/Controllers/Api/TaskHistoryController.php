@@ -89,9 +89,27 @@ class TaskHistoryController extends Controller
             'start' => $start,
             'finish' => $finish + ['logged_minutes' => $loggedMinutes, 'estimate_minutes' => $estimate],
             'changes' => [
-                'edits' => $events->whereIn('type', TaskEvent::FILTERS['edits'])->count(),
+                'edits' => $this->editsAfterCreation($events),
                 'extension' => $extension ? ($extension->status === 'rejected' ? 'declined' : $extension->status) : null,
             ],
         ];
+    }
+
+    /**
+     * Edits made after the task was created. Creating a task with an assignee
+     * also writes an "assigned" entry (same moment, no previous assignee);
+     * that's part of creating it, not a change.
+     */
+    private function editsAfterCreation($events): int
+    {
+        $createdAt = $events->firstWhere('type', TaskEvent::CREATED)?->created_at;
+
+        return $events
+            ->whereIn('type', TaskEvent::FILTERS['edits'])
+            ->reject(fn (TaskEvent $e) => $e->type === TaskEvent::ASSIGNED
+                && empty($e->from)
+                && $createdAt
+                && abs($e->created_at->diffInSeconds($createdAt)) <= 5)
+            ->count();
     }
 }
