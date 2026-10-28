@@ -22,6 +22,8 @@ export type TaskListItem = {
   logged_seconds: number;
   is_timer_running: boolean;
   timer_start_time: string | null;
+  /** The timer has run at least once. */
+  has_been_started?: boolean;
   has_instructions: boolean;
   instructions_preview: string | null;
   pending_extension: boolean;
@@ -254,6 +256,11 @@ export function workingMinutes(from: Date, to: Date): number {
     day.setDate(day.getDate() + 1);
   }
   return Math.round(total / 60_000);
+}
+
+/** Staff lists shade tasks the assignee hasn't worked on yet. */
+export function notStarted(t: { status: string; has_been_started?: boolean; is_timer_running: boolean; logged_seconds: number }): boolean {
+  return t.status !== 'completed' && !t.has_been_started && !t.is_timer_running && t.logged_seconds === 0;
 }
 
 /** Roles that manage tasks; matches User::MANAGER_ROLES on the server. */

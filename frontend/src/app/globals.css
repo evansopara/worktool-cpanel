@@ -11,6 +11,8 @@
   --color-stone: #EFEDE7;
   --color-surface: #FFFFFF;
   --color-surface-2: #F7F6F2;
+  /* Staff task rows and cards the assignee hasn't started yet */
+  --color-unstarted: #E4E0D6;
   --color-ink: #121212;
   --color-ink-2: #4D4A44;
   --color-ink-3: #6A665F;

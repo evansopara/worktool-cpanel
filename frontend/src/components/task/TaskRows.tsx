@@ -3,7 +3,7 @@
 import { FileText, Pause, Pencil, Play, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconButton, ScheduleInline, StatusPill } from '@/components/wc';
-import { DEADLINE_PASSED, deadlinePassed, fmtClock, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
+import { DEADLINE_PASSED, deadlinePassed, fmtClock, notStarted, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
 import { LiveClock, TimerDot } from './LiveClock';
 import type { ActionTask, useTaskActions } from './useTaskActions';
 
@@ -206,7 +206,14 @@ export function StaffTaskTable({
             const note = staffNote(t);
             const missedNoRequest = t.status === 'deadline_missed' && !t.pending_extension;
             return (
-              <li key={t.id} className={cn('grid items-center gap-x-4 gap-y-1.5 border-t border-line px-1 py-3.5', STAFF_COLS)}>
+              <li
+                key={t.id}
+                className={cn(
+                  'grid items-center gap-x-4 gap-y-1.5 border-t border-line px-1 py-3.5',
+                  notStarted(t) && '-mx-2 rounded-[18px] border-t-transparent bg-unstarted px-3',
+                  STAFF_COLS,
+                )}
+              >
                 <TitleCell
                   t={t}
                   onOpen={onOpen}
@@ -283,12 +290,12 @@ function scheduleLines(start: string | null, deadline: string | null): { day: st
  * One task on phones (Tasks and Home): project and title on the left with the
  * actions under them; status, timer and schedule on the right.
  */
-function TaskCard({ t, since, onOpen, meta, actions, footer }: { t: TaskListItem; since: number; onOpen: (id: number) => void; meta?: string; actions: React.ReactNode; footer?: React.ReactNode }) {
+function TaskCard({ t, since, onOpen, meta, actions, footer, shaded }: { t: TaskListItem; since: number; onOpen: (id: number) => void; meta?: string; actions: React.ReactNode; footer?: React.ReactNode; shaded?: boolean }) {
   const s = statusInfo(t.status);
   const missed = isMissed(t);
   const when = scheduleLines(t.start_date, t.deadline);
   return (
-    <article className="flex flex-col gap-3.5 rounded-[26px] bg-surface p-4 text-ink">
+    <article className={cn('flex flex-col gap-3.5 rounded-[26px] p-4 text-ink', shaded ? 'bg-unstarted' : 'bg-surface')}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="truncate text-[13px] font-semibold text-ink-2">
@@ -379,6 +386,7 @@ export function StaffTaskCard({
       t={t}
       since={since}
       onOpen={onOpen}
+      shaded={notStarted(t)}
       actions={t.status === 'completed' ? <span className="py-3 text-[13px] font-semibold text-done">Completed · {fmtClock(t.logged_seconds)} logged</span> : <TimerButtons t={t} actions={actions} size="lg" />}
       footer={
         (note || missedNoRequest) && (
