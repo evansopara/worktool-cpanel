@@ -3,14 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Check, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronRight, Plus } from 'lucide-react';
 import type { User } from '@/types';
 import { cn } from '@/lib/utils';
-import { Button, DateRange, IconButton, Pagination, SearchField, SegmentedFilter, type DateRangeValue } from '@/components/wc';
+import { Button, DateRange, Pagination, SearchField, SegmentedFilter, type DateRangeValue } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
-import { fmtWhen, homeApi, isMissed, taskApi, type HomeData, type TaskListItem } from '@/lib/tasks';
-import { LiveClock } from '@/components/task/LiveClock';
-import { ManagerTaskTable } from '@/components/task/TaskRows';
+import { homeApi, taskApi, type HomeData } from '@/lib/tasks';
+import { ManagerTaskCard, ManagerTaskTable } from '@/components/task/TaskRows';
 import { useTaskWorkspace } from '@/components/task/useTaskWorkspace';
 import { CardTitle, Greeting, MobileTopBar } from './parts';
 
@@ -23,15 +22,6 @@ const STATUS = [
   { key: 'todo', label: 'To do', dot: 'bg-idle' },
   { key: 'review', label: 'In review', dot: 'bg-review-bar' },
 ] as const;
-
-/** Dot before a task row, coloured by where the task stands. */
-function rowDot(t: TaskListItem) {
-  if (isMissed(t)) return 'bg-missed shadow-[0_0_0_4px_var(--color-missed-tint)]';
-  if (t.status === 'review') return 'bg-review-bar shadow-[0_0_0_4px_var(--color-review-tint)]';
-  if (t.status === 'completed') return 'bg-done shadow-[0_0_0_4px_var(--color-done-tint)]';
-  if (t.status === 'in_progress' || t.is_timer_running) return 'bg-pending-line shadow-[0_0_0_4px_var(--color-pending-tint)]';
-  return 'bg-idle shadow-[0_0_0_4px_var(--color-todo-tint)]';
-}
 
 export function ManagerHome({ user }: { user: User }) {
   const [now] = useState(() => new Date());
@@ -136,26 +126,7 @@ export function ManagerHome({ user }: { user: User }) {
           {/* Mobile rows: the first few, "See all" opens Tasks */}
           <div className="flex flex-col gap-2.5 lg:hidden">
             {tasks.slice(0, 3).map((t) => (
-              <div key={t.id} className="flex items-center gap-3 rounded-[22px] bg-surface py-3 pr-2.5 pl-4">
-                <span className={cn('size-2.5 shrink-0 rounded-full', rowDot(t))} />
-                <button type="button" onClick={() => ws.openPanel(t.id)} className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 border-0 bg-transparent p-0 text-left font-ui text-ink outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink">
-                  <span className="text-[15.5px] font-bold">{t.title}</span>
-                  <span className="text-[12.5px] text-ink-2">
-                    <span className="font-semibold text-ink">Start</span> {fmtWhen(t.start_date)}
-                  </span>
-                  <span className={cn('text-[12.5px]', isMissed(t) ? 'text-missed' : 'text-ink-2')}>
-                    <span className="font-semibold">Deadline</span> {fmtWhen(t.deadline)}
-                    {isMissed(t) && ' · missed'}
-                  </span>
-                </button>
-                <LiveClock seconds={t.logged_seconds} running={t.is_timer_running} since={list.dataUpdatedAt} className="text-[12.5px] text-ink-2" />
-                <IconButton aria-label={`Edit ${t.title}`} onClick={() => ws.edit(t.id)}>
-                  <Pencil strokeWidth={2} aria-hidden="true" />
-                </IconButton>
-                <IconButton variant="danger" aria-label={`Delete ${t.title}`} onClick={() => ws.onDelete(t)}>
-                  <Trash2 strokeWidth={2} aria-hidden="true" />
-                </IconButton>
-              </div>
+              <ManagerTaskCard key={t.id} t={t} since={list.dataUpdatedAt} onOpen={ws.openPanel} onEdit={ws.edit} onDelete={ws.onDelete} />
             ))}
             {tasks.length === 0 && !list.isLoading && <p className="m-0 rounded-[22px] bg-surface p-5 text-center text-sm text-ink-3">No tasks here.</p>}
           </div>
