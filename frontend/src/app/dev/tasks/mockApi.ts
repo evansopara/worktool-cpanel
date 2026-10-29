@@ -424,7 +424,7 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
     }
     if (method === 'put' && url === '/auth/profile') return ok(config, { ...people.ige, ...body });
     if (method === 'post' && url === '/auth/change-password') return ok(config, {});
-    if (method === 'get' && url === '/notifications') return ok(config, notifications);
+    if (method === 'get' && url === '/notifications') return ok(config, structuredClone(notifications));
     if ((m = url.match(/^\/notifications\/(\d+)(\/read)?$/))) {
       const i = notifications.findIndex((x) => x.id === Number(m![1]));
       if (method === 'put') notifications[i].read = true;
