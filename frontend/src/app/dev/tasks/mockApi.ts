@@ -470,7 +470,7 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
         1: ['operations_manager', 'available'], 2: ['project_manager', 'available', 'Automation'], 10: ['staff', 'busy', 'Web'],
         11: ['staff', 'offline', 'Copywriting'], 12: ['intern', 'available'], 13: ['team_lead', 'on_leave'],
       };
-      return ok(config, Object.values(people).map((u) => ({ ...u, username: u.first_name.toLowerCase(), email: `${u.first_name.toLowerCase()}@wcdigitalagency.com`, role: roles[u.id][0], work_status: roles[u.id][1], department: roles[u.id][2] ?? null, status: u.id === 12 ? 'pending' : 'active', is_active: u.id !== 13, created_at: ago(30 * u.id) })));
+      return ok(config, Object.values(people).map((u) => ({ ...u, username: u.first_name.toLowerCase(), email: `${u.first_name.toLowerCase()}@wcdigitalagency.com`, role: roles[u.id][0], work_status: roles[u.id][1], department: roles[u.id][2] ?? null, status: u.id === 12 ? 'pending' : 'active', is_active: u.id !== 13, break_one_time: ({ 2: '15:00', 10: '14:00', 11: '11:30', 12: '02:30' } as Record<number, string>)[u.id] ?? null, created_at: ago(30 * u.id) })));
     }
     if (method === 'get' && url === '/notifications/unread-count') return ok(config, { count: 2 });
     if (method === 'get' && (m = url.match(/^\/tasks\/(\d+)\/events$/))) return ok(config, events(find(m[1])));

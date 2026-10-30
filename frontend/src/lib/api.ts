@@ -46,6 +46,7 @@ export const usersApi = {
   update: (id: number, data: Record<string, unknown>) => api.put(`/users/${id}`, data),
   remove: (id: number) => api.delete(`/users/${id}`),
   resetPasswordToken: (id: number) => api.post(`/users/${id}/reset-password-token`),
+  setBreak: (id: number, breakStart: string | null) => api.put(`/users/${id}/break`, { break_one_time: breakStart }),
   deactivate: (id: number) => api.post(`/users/${id}/deactivate`),
   activate: (id: number) => api.post(`/users/${id}/activate`),
 };

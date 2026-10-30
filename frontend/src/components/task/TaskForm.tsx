@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { projectsApi, usersApi } from '@/lib/api';
 import { toDatetimeLocalValue } from '@/lib/utils';
 import { Sheet, SheetActions, SheetTitle } from '@/components/wc';
-import { errorText, fmtWhen, ruleError, taskApi, workingMinutes, type TaskDetail } from '@/lib/tasks';
+import { errorText, fmtBreak, fmtWhen, overlapsBreak, ruleError, taskApi, workingMinutes, type TaskDetail } from '@/lib/tasks';
 
 // New task / Edit task. Not drawn in the design; built from its parts.
 
@@ -52,7 +52,7 @@ const STATUSES = [
 
 const ASSIGNABLE_ROLES = ['staff', 'intern', 'project_manager'];
 
-type UserRow = { id: number; first_name: string; last_name: string; role: string };
+type UserRow = { id: number; first_name: string; last_name: string; role: string; break_one_time?: string | null };
 type ProjectRow = { id: number; name: string };
 
 function fromTask(t: TaskDetail): FormState {
@@ -156,6 +156,9 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
     const u = users.find((x) => String(x.id) === id);
     return u ? `${u.first_name} ${u.last_name}`.trim() : 'This person';
   };
+  // Warn only (decided 2026-10-30): the task window runs into the assignee's daily break.
+  const assignee = users.find((u) => String(u.id) === form.assignee_id);
+  const onBreak = !!assignee && !!form.start_date && !!form.deadline && !datesBackwards && overlapsBreak(assignee.break_one_time, new Date(form.start_date), new Date(form.deadline));
   const canSave = form.title.trim() && form.project_id && !conflict && !datesBackwards && (!needsReason || form.reason.trim()) && !save.isPending;
 
   return (
@@ -193,6 +196,7 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
               {assignable.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.first_name} {u.last_name}
+                  {fmtBreak(u.break_one_time) ? ` · break ${fmtBreak(u.break_one_time)}` : ''}
                 </option>
               ))}
             </select>
@@ -240,6 +244,12 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
         {datesBackwards && (
           <p role="alert" className="m-0 rounded-2xl bg-missed-tint px-4 py-3 text-[13.5px] font-semibold text-missed">
             The deadline is before the start, so this task would be missed as soon as it opens. Set the deadline after {fmtWhen(new Date(form.start_date).toISOString())}.
+          </p>
+        )}
+
+        {onBreak && (
+          <p className="m-0 rounded-2xl bg-pending-tint px-4 py-3 text-[13.5px] text-pending">
+            This task runs through {name(form.assignee_id)}’s break ({fmtBreak(assignee?.break_one_time)}). You can still save it.
           </p>
         )}
 
