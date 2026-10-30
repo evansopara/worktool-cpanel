@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff tasks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}a:hover{color:#000000}
+@keyframes wcpulse{0%,100%{opacity:1}50%{opacity:0.35}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+@media (min-width: 900px){.wc-side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}}
+</style>
+</helmet>
+<div style="position:relative;min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div class="wc-side" style="flex:1 1 248px;background:#121212"><dc-import name="Topbar" active="tasks" role="staff" hint-size="100%,1000px"></dc-import></div>
+<main style="flex:999 1 560px;min-width:0;max-width:1280px;margin:0 auto;box-sizing:border-box;padding:28px 40px 72px;display:flex;flex-direction:column;gap:22px">
+
+<header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding:8px 0 4px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:56px;line-height:1;font-weight:700;letter-spacing:-0.04em">My tasks</h1>
+<p style="margin:0;font-size:16px;color:#4D4A44">Every task assigned to you, with your time tracked against the estimate</p>
+</div>
+</header>
+
+<sc-if value="{{showWork}}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+<label style="display:flex;align-items:center;gap:8px;height:48px;padding:0 18px;border-radius:999px;background:#FFFFFF;flex:1 1 240px;max-width:420px;color:#6A665F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg><input type="search" aria-label="Search your tasks" placeholder="Search your tasks" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font-family:inherit;font-size:14.5px;color:#121212"></label>
+<div role="group" aria-label="Filter by date range" style="display:flex;align-items:center;gap:6px;height:48px;padding:0 8px 0 16px;border-radius:999px;background:#FFFFFF"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4D4A44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg><span style="font-size:13.5px;font-weight:600;color:#4D4A44">From</span><input type="date" aria-label="From date" style="height:36px;border:0;background:transparent;font-family:inherit;font-size:13.5px;color:#121212"><span style="font-size:13.5px;color:#6A665F">to</span><input type="date" aria-label="To date" style="height:36px;border:0;background:transparent;font-family:inherit;font-size:13.5px;color:#121212"></div>
+<div style="position:relative">
+<button type="button" onClick="{{toggleExport}}" aria-expanded="{{exportOpen}}" aria-haspopup="menu" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Export</button>
+<sc-if value="{{exportMenu}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Export tasks" style="position:absolute;right:0;top:56px;z-index:5;width:280px;padding:10px;border-radius:20px;background:#FFFFFF;box-shadow:0 18px 40px rgba(18,18,18,0.16);display:flex;flex-direction:column;gap:4px">
+<p style="margin:4px 8px 8px;font-size:12.5px;line-height:1.45;color:#6A665F">Exports every task matching your date range, tab and search — not just this page.</p>
+<sc-for list="{{formats}}" as="fm" hint-placeholder-count="3"><button type="button" role="menuitem" onClick="{{closeExport}}" style="display:flex;align-items:center;gap:10px;height:46px;padding:0 12px;border:0;border-radius:14px;background:transparent;color:#121212;font-family:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer"><span style="flex:none;width:30px;height:30px;border-radius:9px;background:#EFEDE7;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700">{{fm.tag}}</span><span style="flex:1;display:flex;flex-direction:column"><span>{{fm.label}}</span><span style="font-size:12px;font-weight:500;color:#6A665F">{{fm.note}}</span></span></button></sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<div role="tablist" aria-label="Task views" style="align-self:flex-start;display:flex;gap:2px;padding:5px;border-radius:999px;background:#FFFFFF">
+<sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{tb.sel}}" onClick="{{tb.pick}}" style="display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border:0;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{tb.bg}};color:{{tb.fg}}">{{tb.label}}<span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;opacity:0.7">{{tb.n}}</span><sc-if value="{{tb.badge}}" hint-placeholder-val="{{ false }}"><span style="min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:#FFD43B;color:#121212;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{tb.badge}}</span></sc-if></button></sc-for>
+</div>
+
+<sc-if value="{{showWork}}" hint-placeholder-val="{{ true }}">
+<section aria-label="Task list" style="background:#FFFFFF;border-radius:28px;padding:8px 24px 18px;overflow-x:auto">
+<div style="min-width:900px">
+<div aria-hidden="true" style="display:grid;grid-template-columns:minmax(0,3fr) 132px 104px 104px minmax(0,2fr) 184px;column-gap:16px;padding:14px 4px 10px;font-size:11.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6A665F"><span>Task</span><span>Status</span><span>Assigned by</span><span>Time</span><span>Schedule</span><span style="text-align:right">Actions</span></div>
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+<sc-for list="{{rows}}" as="t" hint-placeholder-count="10">
+<li style="display:grid;grid-template-columns:minmax(0,3fr) 132px 104px 104px minmax(0,2fr) 184px;column-gap:16px;row-gap:6px;align-items:center;padding:14px 4px;border-top:1px solid #ECEAE4">
+<span style="min-width:0;display:flex;flex-direction:column;gap:3px"><a href="StaffTaskDetail.dc.html" style="font-size:15px;font-weight:700;line-height:1.35;color:#121212;text-decoration:none">{{t.title}}</a><span style="font-size:12.5px;color:#6A665F">{{t.project}}</span><sc-if value="{{t.hasBrief}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{t.onRead}}" style="align-self:flex-start;display:flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:#4D4A44;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"></path></svg> Instructions · <span style="text-decoration:underline">Read</span></button></sc-if></span>
+<span><span style="display:inline-block;font-size:12px;font-weight:600;line-height:1.3;padding:5px 10px;border-radius:999px;white-space:nowrap;background:{{t.sbg}};color:{{t.sfg}}">{{t.status}}</span></span>
+<span style="font-size:13.5px;font-weight:600;line-height:1.35;white-space:pre-line">{{t.byML}}</span>
+<span style="display:flex;flex-direction:column;gap:1px"><span style="display:flex;align-items:center;gap:6px;font-family:'Geist Mono',ui-monospace,monospace;font-size:13.5px;font-weight:600"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{t.dot}};animation:{{t.anim}}"></span>{{t.spent}}</span><span style="font-size:12px;color:#6A665F">est. {{t.est}}</span></span>
+<span style="min-width:0;display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:13px;align-items:baseline"><span style="font-size:10.5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Start</span><span style="font-weight:600">{{t.start}}</span><span style="font-size:10.5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Deadline</span><span style="font-weight:600;color:{{t.dueFg}}">{{t.due}}</span></span>
+<span style="display:flex;justify-content:flex-end;gap:6px">
+<sc-if value="{{t.isTimer}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{t.onStart}}" aria-label="{{t.startLabel}} timer for {{t.title}}" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:999px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:{{t.startBg}};color:{{t.startFg}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{t.icon}}"></path></svg>{{t.startLabel}}</button><button type="button" onClick="{{t.onSubmit}}" style="height:38px;padding:0 14px;border:0;border-radius:999px;background:#FFD43B;color:#121212;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Submit</button></sc-if>
+<sc-if value="{{t.isDone}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:600;color:#1F7A4A">Completed</span></sc-if>
+<sc-if value="{{t.isMissed}}" hint-placeholder-val="{{ false }}"><button type="button" style="height:38px;padding:0 14px;border:0;border-radius:999px;background:#EFEDE7;color:#121212;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Request extension</button></sc-if>
+</span>
+<sc-if value="{{t.note}}" hint-placeholder-val="{{ false }}"><span style="grid-column:1 / -1;font-size:12.5px;font-weight:600;color:#8A5A00">{{t.note}}</span></sc-if>
+</li>
+</sc-for>
+</ul>
+</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid #ECEAE4">
+<span style="font-size:13.5px;color:#6A665F">Showing <strong style="color:#121212">{{range}}</strong> of {{count}} tasks</span>
+<nav aria-label="Task pages" style="display:flex;align-items:center;gap:6px">
+<button type="button" onClick="{{prev}}" aria-label="Previous page" aria-disabled="{{prevOff}}" style="width:40px;height:40px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{prevOp}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+<sc-for list="{{pages}}" as="pg" hint-placeholder-count="3"><button type="button" onClick="{{pg.go}}" aria-label="Page {{pg.n}}" aria-current="{{pg.cur}}" style="min-width:40px;height:40px;border:0;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{pg.bg}};color:{{pg.fg}}">{{pg.n}}</button></sc-for>
+<button type="button" onClick="{{next}}" aria-label="Next page" aria-disabled="{{nextOff}}" style="width:40px;height:40px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{nextOp}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></button>
+</nav>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isExt}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="h-ext" style="background:#FFFFFF;border-radius:30px;padding:28px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><h2 id="h-ext" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:26px;font-weight:700">Extension requests</h2><button type="button" style="height:46px;padding:0 20px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:14.5px;font-weight:600;cursor:pointer">Request an extension</button></div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;padding:16px 0;border-top:1px solid #ECEAE4">
+<span style="flex:2 1 240px;display:flex;flex-direction:column;gap:2px"><span style="font-size:15.5px;font-weight:700">Work on Contourfajasafrica email</span><span style="font-size:13px;color:#6A665F">Contour Fajaas Africa</span></span>
+<span style="flex:2 1 240px;font-size:14px"><span style="color:#6A665F;text-decoration:line-through">Oct 23, 5:00 PM</span> → <strong>Oct 26, 11:00 AM</strong></span>
+<span style="font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;background:#FCF0CC;color:#8A5A00">Pending</span>
+</div>
+</section>
+</sc-if>
+
+</main>
+
+<sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(18,18,18,0.5)">
+<div role="dialog" aria-modal="true" aria-labelledby="brief-h" style="width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:28px;border-radius:30px;background:#FFFFFF;display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-size:12.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8A5A00">{{sheet.eyebrow}}</p>
+<h2 id="brief-h" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:30px;line-height:1.08;font-weight:700;letter-spacing:-0.02em">[Website task title]</h2>
+<p style="margin:0;font-size:13.5px;color:#6A665F">From Adeyemo Titilope</p>
+<div style="padding:18px;border-radius:20px;background:#F7F6F2;font-size:15px;line-height:1.6">[Full instructions written by Adeyemo Titilope when creating or editing this task — steps to follow, links, files and what “done” looks like.]</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<button type="button" onClick="{{closeSheet}}" style="flex:1 1 140px;height:52px;border:0;border-radius:999px;background:#EFEDE7;color:#121212;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">Cancel</button>
+<button type="button" onClick="{{confirmSheet}}" style="flex:2 1 200px;height:52px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">{{sheet.cta}}</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{early}}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(18,18,18,0.5)">
+<div role="dialog" aria-modal="true" aria-labelledby="early-h" style="width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-sizing:border-box;padding:28px;border-radius:30px;background:#FFFFFF;display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#1F7A4A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2"></path></svg>Starting early · it’s {{early.now}}</p>
+<h2 id="early-h" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-0.02em">This task is scheduled for 1:01 PM — do you want to start early?</h2>
+<p style="margin:0;font-size:14px;color:#4D4A44">[Website task title] · WC Digital Agency · deadline Oct 26, 4:00 PM</p>
+<sc-if value="{{early.clash}}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:12px;padding:16px;border-radius:20px;background:#FCF0CC;color:#5C3C00"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg><p style="margin:0;font-size:14.5px;line-height:1.5"><strong>You have [Task scheduled now] scheduled now (due 12:00 PM).</strong> Start this one anyway?</p></div></sc-if>
+<p style="margin:0;font-size:13.5px;line-height:1.5;color:#4D4A44">If you start now, the task history will record “Timer started 2h 31m before scheduled start.” The 2hr 59min estimate and the 4:00 PM deadline stay the same.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<button type="button" onClick="{{closeSheet}}" style="flex:1 1 140px;height:52px;border:0;border-radius:999px;background:#EFEDE7;color:#121212;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">Not yet</button>
+<button type="button" onClick="{{confirmEarly}}" style="flex:2 1 200px;height:52px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">Start early</button>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scenario":{"editor":"enum","options":["afternoon","morning"],"default":"afternoon"},"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); var m = (p && p.scenario) === 'morning'; this.state = { tab: 'active', page: 1, exportOpen: false, running: !m, run2: false, submitted: false, briefSeen: true, sheet: m ? 'early' : '', startedEarly: !m }; }
+  renderVals() {
+    var self = this, s = this.state, tab = s.tab;
+    var play = 'M7 4v16l13-8z', pause = 'M6 4h4v16H6zM14 4h4v16h-4z';
+    var run = s.running && !s.submitted;
+    var morning = (this.props.scenario ?? 'afternoon') === 'morning';
+    var needsEarly = morning && !s.startedEarly, fresh = needsEarly && !s.running;
+    var BRIEF = '[Full instructions written by Adeyemo Titilope when creating or editing this task — steps to follow, links, files and what “done” looks like.]';
+    var t1 = {
+      kind: 'running', project: 'WC Digital Agency', by: 'Adeyemo Titilope', title: '[Website task title]', est: '2hr 59min',
+      status: s.submitted ? 'In review' : (fresh ? 'To do' : 'In progress'), sbg: s.submitted ? '#DCE6F7' : (fresh ? '#ECEAE4' : '#FCF0CC'), sfg: s.submitted ? '#1E4797' : (fresh ? '#4D4A44' : '#8A5A00'),
+      spent: morning && !s.startedEarly ? '00:00:00' : '03:02:43', dot: run ? '#1F9D57' : 'transparent', anim: run ? 'wcpulse 1.4s ease-in-out infinite' : 'none',
+      start: 'Oct 26, 1:01 PM', due: 'Oct 26, 4:00 PM', dueFg: '#121212',
+      hasBrief: true, onRead: function () { self.setState({ sheet: 'read' }); },
+      startLabel: run ? 'Stop' : 'Start', icon: run ? pause : play, startBg: run ? '#121212' : '#E2F2E7', startFg: run ? '#FFFFFF' : '#1F7A4A',
+      onStart: function () {
+        if (self.state.running) { self.setState({ running: false }); return; }
+        if (!self.state.briefSeen) { self.setState({ sheet: 'start' }); return; }
+        if (needsEarly) { self.setState({ sheet: 'early' }); return; }
+        self.setState({ running: true, submitted: false });
+      },
+      onSubmit: function () { self.setState({ submitted: true, running: false }); },
+      note: s.submitted ? 'Submitted for review. You can still restart the timer or resubmit.' : ''
+    };
+    var t2 = {
+      kind: 'locked', project: 'Contour Fajaas Africa', by: 'Adeyemo Titilope', title: 'Work on Contourfajasafrica email', est: '2hr',
+      status: 'Deadline missed', sbg: '#FBE7E4', sfg: '#C0362C', spent: '00:00:00', dot: s.run2 ? '#1F9D57' : 'transparent', anim: s.run2 ? 'wcpulse 1.4s ease-in-out infinite' : 'none',
+      start: 'Oct 23, 3:00 PM', due: 'Oct 23, 5:00 PM', dueFg: '#C0362C', hasBrief: false,
+      startLabel: s.run2 ? 'Stop' : 'Start', icon: s.run2 ? pause : play, startBg: s.run2 ? '#121212' : '#E2F2E7', startFg: s.run2 ? '#FFFFFF' : '#1F7A4A',
+      onStart: function () { self.setState({ run2: !self.state.run2 }); }, onSubmit: function () { self.setState({ run2: false }); },
+      note: 'Extension to Oct 26, 11:00 AM requested — you can keep working while it’s decided.'
+    };
+    function buildAll(t1, t2) {
+      var P = ['QueenbodySecret', 'TopMart', 'SALAMAT', 'Marketing Team', 'Oladoyin taiwo', 'Adan Idet', 'Temitope Oyewole', 'Dr Gloria Esoimeme', 'Abiola Adediran', 'WC Digital Agency', 'Contour Fajaas Africa'];
+      var T = ['Homepage hero section', 'SMTP setup and test emails', 'Product page layout', 'Checkout flow review', 'Mobile menu fixes', 'Client walkthrough prep', 'Blog page template', 'Contact form validation', 'Speed optimisation pass', 'Footer and legal pages', 'Image compression', 'Landing page copy edits', 'Payment gateway test', 'Banner resize for ads', 'Newsletter template', 'About page update', '404 page design', 'Analytics setup', 'Search results page', 'Order confirmation email', 'Cart abandonment email', 'Social share images'];
+      var E = ['1hr', '2hr', '45min', '3hr', '1hr 30min', '30min'];
+      var S = ['01:02:10', '01:48:33', '00:41:05', '02:55:20', '01:21:47', '00:27:12'];
+      var H = ['9:00 AM', '10:30 AM', '11:00 AM', '1:00 PM', '2:30 PM', '3:00 PM'];
+      var D = ['11:00 AM', '12:30 PM', '12:00 PM', '4:00 PM', '4:00 PM', '3:30 PM'];
+      var out = [t1];
+      for (var i = 0; i < 22; i++) {
+        var k = i % 6, kind, day;
+        if (i < 3) { kind = 'todo'; day = 27 + (i > 1 ? 1 : 0); }
+        else if (i < 5) { kind = 'review'; day = 26; }
+        else if (i < 6) { kind = 'missed'; day = 24; }
+        else { kind = 'done'; day = 25 - (i - 6); }
+        var o = { project: P[i % P.length], title: T[i], est: E[k], start: 'Oct ' + day + ', ' + H[k], due: 'Oct ' + day + ', ' + D[k], kind: kind };
+        if (kind === 'todo') Object.assign(o, { status: 'To do', sbg: '#ECEAE4', sfg: '#4D4A44', spent: '00:00:00', dueFg: '#121212' });
+        if (kind === 'review') Object.assign(o, { status: 'In review', sbg: '#DCE6F7', sfg: '#1E4797', spent: S[k], dueFg: '#121212' });
+        if (kind === 'missed') Object.assign(o, { status: 'Deadline missed', sbg: '#FBE7E4', sfg: '#C0362C', spent: '00:00:00', dueFg: '#C0362C' });
+        if (kind === 'done') Object.assign(o, { status: 'Completed', sbg: '#E2F2E7', sfg: '#1F7A4A', spent: S[k], dueFg: '#121212' });
+        out.push(o);
+        if (i === 5) out.push(t2);
+      }
+      return out;
+    }
+    var all = buildAll(t1, t2);
+    var BY = ['Adeyemo Titilope', 'Olubukola Ige', 'Adeleke Toyin', 'Aliyah Yisau', 'Saka Maria Abiodun'];
+    all.forEach(function (r, i) {
+      if (!r.by) r.by = BY[i % BY.length];
+      r.byML = r.by.split(' ').join('\n');
+      r.isTimer = r.kind === 'running' || r.kind === 'locked' || r.kind === 'todo' || r.kind === 'review';
+      r.isDone = r.kind === 'done'; r.isMissed = r.kind === 'missed';
+      if (r.kind === 'todo' || r.kind === 'review' || r.kind === 'missed' || r.kind === 'done') Object.assign(r, { startLabel: 'Start', icon: play, startBg: '#E2F2E7', startFg: '#1F7A4A', onStart: function () {}, onSubmit: function () {}, dot: 'transparent', anim: 'none', hasBrief: false, note: '' });
+      if (r.kind === 'missed') r.isTimer = false;
+    });
+    var active = all.filter(function (r) { return r.kind !== 'done'; }), done = all.filter(function (r) { return r.kind === 'done'; });
+    var list = tab === 'done' ? done : active;
+    var per = 10, pagesN = Math.max(1, Math.ceil(list.length / per)), page = Math.min(s.page, pagesN), from = (page - 1) * per;
+    var pages = []; for (var n = 1; n <= pagesN; n++) (function (m) { var on = m === page; pages.push({ n: String(m), cur: on ? 'page' : 'false', bg: on ? '#121212' : '#EFEDE7', fg: on ? '#FFFFFF' : '#121212', go: function () { self.setState({ page: m }); } }); })(n);
+    function mk(id, label, nTxt, badge) { var on = tab === id; return { label: label, n: nTxt, badge: badge || '', sel: on ? 'true' : 'false', bg: on ? '#121212' : 'transparent', fg: on ? '#FFFFFF' : '#4D4A44', pick: function () { self.setState({ tab: id, page: 1 }); } }; }
+    var sheet = (s.sheet === 'start' || s.sheet === 'read') ? { eyebrow: s.sheet === 'start' ? 'Read before you start' : 'Instructions', cta: s.sheet === 'start' ? 'Got it, start timer' : 'Got it' } : false;
+    return {
+      tabs: [ mk('active', 'Active', String(active.length)), mk('done', 'Completed', String(done.length)), mk('ext', 'Extension requests', '', '1') ],
+      showWork: tab !== 'ext', isExt: tab === 'ext', isDone: false,
+      rows: list.slice(from, from + per), count: String(list.length), range: (from + 1) + '–' + Math.min(from + per, list.length), pages: pages,
+      prev: function () { if (page > 1) self.setState({ page: page - 1 }); }, next: function () { if (page < pagesN) self.setState({ page: page + 1 }); },
+      prevOff: page === 1 ? 'true' : 'false', nextOff: page === pagesN ? 'true' : 'false', prevOp: page === 1 ? '0.35' : '1', nextOp: page === pagesN ? '0.35' : '1',
+      exportMenu: s.exportOpen, exportOpen: s.exportOpen ? 'true' : 'false',
+      toggleExport: function () { self.setState({ exportOpen: !self.state.exportOpen }); },
+      closeExport: function () { self.setState({ exportOpen: false }); },
+      formats: [ { tag: 'XLS', label: 'Excel', note: 'Spreadsheet with every column' }, { tag: 'CSV', label: 'CSV', note: 'For other tools and imports' }, { tag: 'PDF', label: 'PDF', note: 'Printable report' } ],
+      sheet: sheet,
+      early: s.sheet === 'early' ? { now: '10:30 AM', clash: true } : false,
+      confirmEarly: function () { self.setState({ sheet: '', running: true, startedEarly: true, submitted: false }); },
+      closeSheet: function () { self.setState({ sheet: '' }); },
+      confirmSheet: function () { var start = self.state.sheet === 'start'; if (start && needsEarly) { self.setState({ sheet: 'early', briefSeen: true }); return; } self.setState({ sheet: '', briefSeen: true, running: start ? true : self.state.running, submitted: start ? false : self.state.submitted }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -3,7 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\BadgeController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TaskExportController;
+use App\Http\Controllers\Api\TaskHistoryController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
@@ -23,12 +27,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/tasks/{task}/submit', [\App\Http\Controllers\Api\TaskController::class, 'submit']);
+    Route::post('/tasks/{task}/submit', [TaskController::class, 'submit']);
 
     // Admin: User management
     Route::get('/users', [AuthController::class, 'users']);
     Route::post('/users', [AuthController::class, 'createUser']);
     Route::put('/users/{user}', [AuthController::class, 'updateUser']);
+    Route::put('/users/{user}/break', [AuthController::class, 'updateBreak']);
     Route::delete('/users/{user}', [AuthController::class, 'deleteUser']);
     Route::post('/users/{user}/reset-password-token', [AuthController::class, 'resetPasswordToken']);
     Route::post('/users/{user}/deactivate', [AuthController::class, 'deactivateUser']);
@@ -68,17 +73,33 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sentiments', [SimpleController::class, 'sentimentIndex']);
     Route::post('/sentiments', [SimpleController::class, 'sentimentStore']);
 
-    // Tasks
+    // Home page summary (counts, "Needs you", pipeline, current task)
+    Route::get('/home', [HomeController::class, 'index']);
+    // Pending counts for the menu badges
+    Route::get('/badges', BadgeController::class);
+
+    // Tasks (rules: design/HANDOFF_SPEC.md §8)
     Route::get('/tasks', [TaskController::class, 'index']);
+    Route::get('/tasks/export', TaskExportController::class);
     Route::post('/tasks', [TaskController::class, 'store']);
     Route::get('/tasks/{task}', [TaskController::class, 'show']);
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::patch('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+    Route::get('/tasks/{task}/events', [TaskHistoryController::class, 'index']);
 
-    // Task timer
+    // Task timer and review
     Route::post('/tasks/{task}/timer/start', [TaskController::class, 'startTimer']);
     Route::post('/tasks/{task}/timer/stop', [TaskController::class, 'stopTimer']);
-    Route::post('/tasks/{task}/estimate', [TaskController::class, 'reviseEstimate']);
+    Route::post('/tasks/{task}/approve', [TaskController::class, 'approve']);
+    Route::post('/tasks/{task}/send-back', [TaskController::class, 'sendBack']);
+    Route::post('/tasks/{task}/instructions/read', [TaskController::class, 'instructionsRead']);
+
+    // Task requests: more time on the deadline or the estimate
+    Route::post('/tasks/{task}/extension-requests', [TaskController::class, 'storeExtensionRequest']);
+    Route::patch('/tasks/{task}/extension-requests/{extensionRequest}', [TaskController::class, 'decideExtensionRequest']);
+    Route::post('/tasks/{task}/estimate-requests', [TaskController::class, 'storeEstimateRequest']);
+    Route::patch('/tasks/{task}/estimate-requests/{estimateRequest}', [TaskController::class, 'decideEstimateRequest']);
 
     // Task iterations
     Route::get('/tasks/{task}/iterations', [TaskController::class, 'iterations']);
@@ -97,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/messages/project/{message}', [MessageController::class, 'deleteProjectMessage']);
 
     // Messages - Direct
+    Route::get('/messages/inbox', [MessageController::class, 'inbox']);
     Route::get('/messages/conversations', [MessageController::class, 'conversations']);
     Route::get('/messages/direct/{userId}', [MessageController::class, 'directMessages']);
     Route::post('/messages/direct/{userId}', [MessageController::class, 'sendDirectMessage']);

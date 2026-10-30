@@ -18,6 +18,7 @@ use App\Models\ClientSentiment;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
@@ -189,7 +190,7 @@ class SimpleController extends Controller
         $user = $request->user();
         $query = TechnicalSupportRequest::with(['requester', 'assignedTo']);
 
-        if (in_array($user->role, ['staff', 'intern'])) {
+        if (!self::managesSupport($user)) {
             $query->where('requester_id', $user->id);
         }
 
@@ -227,8 +228,22 @@ class SimpleController extends Controller
         return response()->json($req, 201);
     }
 
+    /**
+     * Who works the support queue (the menu calls it "Technical management"):
+     * technical support staff and every manager role. Everyone else only
+     * sees and follows their own requests.
+     */
+    private static function managesSupport(User $user): bool
+    {
+        return $user->isManager() || self::isTechSupport($user);
+    }
+
     public function supportUpdate(Request $request, TechnicalSupportRequest $support)
     {
+        if (!self::managesSupport($request->user())) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'status' => 'sometimes|string',
             'assigned_to_id' => 'nullable|integer|exists:users,id',
@@ -551,6 +566,7 @@ class SimpleController extends Controller
 
     public function sopStore(Request $request)
     {
+        $this->authorizeSopWrite($request);
         $data = $request->validate([
             'title' => 'required|string',
             'description' => 'nullable|string',
@@ -558,6 +574,10 @@ class SimpleController extends Controller
         ]);
         $data['created_by'] = $request->user()->id;
         $data['status'] = 'active';
+        // The live sops table has a required department column with no default.
+        if (Schema::hasColumn('sops', 'department')) {
+            $data['department'] = $request->user()->department ?: ($data['category'] ?? null) ?: 'General';
+        }
 
         $sop = Sop::create($data);
         return response()->json($sop, 201);
@@ -570,6 +590,7 @@ class SimpleController extends Controller
 
     public function sopUpdate(Request $request, Sop $sop)
     {
+        $this->authorizeSopWrite($request);
         $sop->update($request->validate([
             'title' => 'sometimes|string',
             'description' => 'nullable|string',
@@ -579,14 +600,16 @@ class SimpleController extends Controller
         return response()->json($sop);
     }
 
-    public function sopDestroy(Sop $sop)
+    public function sopDestroy(Request $request, Sop $sop)
     {
+        $this->authorizeSopWrite($request);
         $sop->delete();
         return response()->json(['message' => 'SOP deleted.']);
     }
 
     public function sopSegmentStore(Request $request, Sop $sop)
     {
+        $this->authorizeSopWrite($request);
         $data = $request->validate([
             'title' => 'required|string',
             'content' => 'required|string',
@@ -600,6 +623,8 @@ class SimpleController extends Controller
 
     public function sopSegmentUpdate(Request $request, Sop $sop, SopSegment $segment)
     {
+        $this->authorizeSopWrite($request);
+        abort_unless((int) $segment->sop_id === (int) $sop->id, 404);
         $segment->update($request->validate([
             'title' => 'sometimes|string',
             'content' => 'sometimes|string',
@@ -608,10 +633,18 @@ class SimpleController extends Controller
         return response()->json($segment);
     }
 
-    public function sopSegmentDestroy(Sop $sop, SopSegment $segment)
+    public function sopSegmentDestroy(Request $request, Sop $sop, SopSegment $segment)
     {
+        $this->authorizeSopWrite($request);
+        abort_unless((int) $segment->sop_id === (int) $sop->id, 404);
         $segment->delete();
         return response()->json(['message' => 'Segment deleted.']);
+    }
+
+    // Everyone can read SOPs; only Operations Managers change them.
+    private function authorizeSopWrite(Request $request): void
+    {
+        $this->authorizeRole($request, ['operations_manager']);
     }
 
     // ==================== ISSUE REPORTS ====================
@@ -746,6 +779,12 @@ class SimpleController extends Controller
 
     public function reviewLinkRespond(Request $request, ReviewLink $reviewLink)
     {
+        // Only the reviewer it was sent to, or a Team Lead / Operations Manager.
+        $user = $request->user();
+        if ((int) $reviewLink->assigned_to !== $user->id && !in_array($user->role, ['operations_manager', 'team_lead'])) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'status' => 'required|in:approved,not_approved',
             'review_comment' => 'nullable|string',

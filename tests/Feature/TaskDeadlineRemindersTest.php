@@ -6,13 +6,14 @@ use App\Models\Notification;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Schema;
+use Tests\Concerns\CreatesTaskTables;
 use Tests\TestCase;
 
 class TaskDeadlineRemindersTest extends TestCase
 {
+    use CreatesTaskTables;
+
     private User $assignee;
     private User $manager;
 
@@ -23,48 +24,9 @@ class TaskDeadlineRemindersTest extends TestCase
         config(['services.webpush.public_key' => null, 'services.webpush.private_key' => null]);
         Carbon::setTestNow(Carbon::parse('2026-10-20 09:00:00'));
 
-        // The production tables were created by SQL import and several older
-        // migrations are MySQL-only, so the SQLite test database gets just the
-        // columns these tests touch.
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('username');
-            $table->string('first_name')->nullable();
-            $table->string('email')->nullable();
-            $table->string('password');
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
-        Schema::create('projects', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('manager_id')->nullable();
-            $table->timestamps();
-        });
-        Schema::create('notifications', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->string('type');
-            $table->string('title')->nullable();
-            $table->text('message')->nullable();
-            $table->unsignedBigInteger('reference_id')->nullable();
-            $table->string('reference_type')->nullable();
-            $table->boolean('read')->default(false);
-            $table->timestamps();
-        });
-        Schema::create('tasks', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->unsignedBigInteger('project_id')->nullable();
-            $table->unsignedBigInteger('assignee_id')->nullable();
-            $table->string('status')->default('todo');
-            $table->dateTime('start_date')->nullable();
-            $table->dateTime('deadline')->nullable();
-            $table->unsignedInteger('time_spent')->default(0);
-            $table->boolean('is_timer_running')->default(false);
-            $table->dateTime('timer_start_time')->nullable();
-            $table->dateTime('timer_stopped_at')->nullable();
-            $table->timestamps();
-        });
+        // Task tables built like production, including the task history
+        // migration; the reminder-flags migration is run per test.
+        $this->createTaskTables();
 
         $this->assignee = User::forceCreate(['username' => 'staff', 'first_name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'x']);
         $this->manager = User::forceCreate(['username' => 'pm', 'email' => 'pm@example.com', 'password' => 'x']);
@@ -230,6 +192,7 @@ class TaskDeadlineRemindersTest extends TestCase
         // The task that was already past halfway still gets its final warning
         // (and the one due at 10:35 has now genuinely missed its deadline).
         $this->runAt('2026-10-20 11:20:00');
-        $this->assertSame(['Deadline in 10 minutes', 'Deadline Missed'], $this->titlesFor($this->assignee));
+        // Two different tasks, so the order doesn't matter.
+        $this->assertEqualsCanonicalizing(['Deadline in 10 minutes', 'Deadline Missed'], $this->titlesFor($this->assignee));
     }
 }

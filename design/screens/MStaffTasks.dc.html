@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile staff tasks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+@keyframes wcpulse{0%,100%{opacity:1}50%{opacity:0.35}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div style="position:absolute;left:0;bottom:0;z-index:2"><dc-import name="MTabBar" active="tasks" role="staff" hint-size="390px,96px"></dc-import></div>
+<div style="height:844px;overflow-y:auto;box-sizing:border-box;padding:56px 18px 120px;display:flex;flex-direction:column;gap:14px">
+
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:40px;line-height:1;font-weight:700;letter-spacing:-0.04em">My tasks</h1>
+
+<div role="tablist" aria-label="Task views" style="display:flex;padding:5px;border-radius:999px;background:#FFFFFF">
+<sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{tb.sel}}" onClick="{{tb.pick}}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:40px;border:0;border-radius:999px;font-family:inherit;font-size:13.5px;font-weight:600;background:{{tb.bg}};color:{{tb.fg}}">{{tb.label}}<sc-if value="{{tb.badge}}" hint-placeholder-val="{{ false }}"><span style="min-width:17px;height:17px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:#FFD43B;color:#121212;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center">{{tb.badge}}</span></sc-if></button></sc-for>
+</div>
+
+<sc-if value="{{isActive}}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{tasks}}" as="t" hint-placeholder-count="2">
+<article style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:24px;background:{{t.bg}};color:{{t.fg}}">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 style="margin:0;font-size:17px;line-height:1.25;font-weight:700"><a href="MStaffTaskDetail.dc.html" style="color:inherit;text-decoration:none">{{t.title}}</a></h2><span style="font-size:12.5px;opacity:0.7">{{t.project}} · est. {{t.est}}</span></div><span style="flex:none;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;background:{{t.sbg}};color:{{t.sfg}}">{{t.status}}</span></div>
+<div style="display:flex;align-items:center;gap:8px"><span role="timer" aria-label="Time logged {{t.spent}}" style="display:flex;align-items:center;gap:8px;margin-right:auto"><span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:{{t.dot}};animation:{{t.anim}}"></span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:24px;line-height:1;font-weight:600;color:{{t.timeFg}}">{{t.spent}}</span></span><button type="button" onClick="{{t.onStart}}" aria-disabled="{{t.locked}}" style="display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border:0;border-radius:999px;font-family:inherit;font-size:13.5px;font-weight:700;background:{{t.startBg}};color:{{t.startFg}};opacity:{{t.op}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="{{t.icon}}"></path></svg>{{t.startLabel}}</button><button type="button" onClick="{{t.onSubmit}}" aria-disabled="{{t.locked}}" style="height:40px;padding:0 14px;border:0;border-radius:999px;background:#FFD43B;color:#121212;font-family:inherit;font-size:13.5px;font-weight:700;opacity:{{t.op}}">Submit</button></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><div style="padding:8px 12px;border-radius:12px;background:{{t.panel}};display:flex;flex-direction:column;gap:1px"><span style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.65">Start</span><span style="font-size:13px;font-weight:600">{{t.start}}</span></div><div style="padding:8px 12px;border-radius:12px;background:{{t.panel}};display:flex;flex-direction:column;gap:1px"><span style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.65">Deadline</span><span style="font-size:13px;font-weight:600;color:{{t.dueFg}}">{{t.due}}</span></div></div>
+<sc-if value="{{t.hasBrief}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{t.onRead}}" style="display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;border-radius:12px;background:{{t.briefBg}};border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"></path></svg><span style="flex:none;font-size:12.5px;font-weight:600">Instructions</span><span style="flex:1;min-width:0;font-size:12.5px;opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{t.brief}}</span><span style="flex:none;font-size:12.5px;font-weight:600;text-decoration:underline">Read</span></button></sc-if>
+<sc-if value="{{t.note}}" hint-placeholder-val="{{ false }}"><p style="margin:0;font-size:12.5px;font-weight:600;color:{{t.noteFg}}">{{t.note}}</p></sc-if>
+</article>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<div style="min-height:200px;border-radius:26px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:14px;font-weight:600;color:#6A665F">[Completed tasks list]</div>
+</sc-if>
+
+<sc-if value="{{isExt}}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<button type="button" style="height:50px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:600">Request an extension</button>
+<article style="display:flex;flex-direction:column;gap:8px;padding:18px;border-radius:24px;background:#FFFFFF">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:15.5px;font-weight:700">Work on Contourfajasafrica email</span><span style="flex:none;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:#FCF0CC;color:#8A5A00">Pending</span></div>
+<span style="font-size:13px;color:#6A665F">Contour Fajaas Africa</span>
+<span style="font-size:14px"><span style="color:#6A665F;text-decoration:line-through">Oct 23, 5:00 PM</span> → <strong>Oct 26, 11:00 AM</strong></span>
+</article>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{sheet}}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(18,18,18,0.5)">
+<div role="dialog" aria-modal="true" aria-labelledby="mbrief-h" style="max-height:78%;overflow-y:auto;box-sizing:border-box;padding:12px 20px 34px;border-radius:28px 28px 0 0;background:#FFFFFF;display:flex;flex-direction:column;gap:14px">
+<span aria-hidden="true" style="align-self:center;width:44px;height:5px;border-radius:999px;background:#D3CFC5"></span>
+<p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8A5A00">{{sheet.eyebrow}}</p>
+<h2 id="mbrief-h" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:24px;line-height:1.1;font-weight:700">[Website task title]</h2>
+<p style="margin:0;font-size:13px;color:#6A665F">From Adeyemo Titilope</p>
+<div style="padding:16px;border-radius:18px;background:#F7F6F2;font-size:15px;line-height:1.6">[Full instructions written by Adeyemo Titilope when creating or editing this task — steps to follow, links, files and what “done” looks like.]</div>
+<button type="button" onClick="{{confirmSheet}}" style="height:54px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:16px;font-weight:700">{{sheet.cta}}</button>
+<button type="button" onClick="{{closeSheet}}" style="height:46px;border:0;border-radius:999px;background:transparent;color:#4D4A44;font-family:inherit;font-size:15px;font-weight:600">Cancel</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{early}}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(18,18,18,0.5)">
+<div role="dialog" aria-modal="true" aria-labelledby="mearly-h" style="max-height:82%;overflow-y:auto;box-sizing:border-box;padding:12px 20px 34px;border-radius:28px 28px 0 0;background:#FFFFFF;display:flex;flex-direction:column;gap:14px">
+<span aria-hidden="true" style="align-self:center;width:44px;height:5px;border-radius:999px;background:#D3CFC5"></span>
+<p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#1F7A4A">Starting early · it’s {{early.now}}</p>
+<h2 id="mearly-h" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:23px;line-height:1.15;font-weight:700">This task is scheduled for 1:01 PM — do you want to start early?</h2>
+<p style="margin:0;font-size:13px;color:#4D4A44">[Website task title] · deadline Oct 26, 4:00 PM</p>
+<sc-if value="{{early.clash}}" hint-placeholder-val="{{ true }}"><div style="padding:14px;border-radius:18px;background:#FCF0CC;color:#5C3C00;font-size:14px;line-height:1.5"><strong>You have [Task scheduled now] scheduled now (due 12:00 PM).</strong> Start this one anyway?</div></sc-if>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#4D4A44">This will be saved to the task history. Your 2hr 59min estimate and 4:00 PM deadline stay the same.</p>
+<button type="button" onClick="{{confirmEarly}}" style="height:54px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:16px;font-weight:700">Start early</button>
+<button type="button" onClick="{{closeSheet}}" style="height:46px;border:0;border-radius:999px;background:transparent;color:#4D4A44;font-family:inherit;font-size:15px;font-weight:600">Not yet</button>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;afternoon&quot;,&quot;morning&quot;],&quot;default&quot;:&quot;afternoon&quot;},&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); var m = (p && p.scenario) === 'morning'; this.state = { run2: false, tab: 'active', running: !m, submitted: false, briefSeen: true, sheet: m ? 'early' : '', startedEarly: !m }; }
+  renderVals() {
+    var self = this, s = this.state, tab = s.tab, run = s.running && !s.submitted;
+    var morning = (this.props.scenario ?? 'afternoon') === 'morning';
+    var needsEarly = morning && !s.startedEarly, fresh = needsEarly && !s.running;
+    function mk(id, label, badge) { var on = tab === id; return { label: label, badge: badge || '', sel: on ? 'true' : 'false', bg: on ? '#121212' : 'transparent', fg: on ? '#FFFFFF' : '#4D4A44', pick: function () { self.setState({ tab: id }); } }; }
+    var play = 'M7 4v16l13-8z', pause = 'M6 4h4v16H6zM14 4h4v16h-4z';
+    return {
+      tabs: [ mk('active', 'Active'), mk('done', 'Done'), mk('ext', 'Extensions', '1') ],
+      isActive: tab === 'active', isDone: tab === 'done', isExt: tab === 'ext',
+      early: s.sheet === 'early' ? { now: '10:30 AM', clash: true } : false,
+      confirmEarly: function () { self.setState({ sheet: '', running: true, startedEarly: true, submitted: false }); },
+      sheet: (s.sheet === 'start' || s.sheet === 'read') ? { eyebrow: s.sheet === 'start' ? 'Read before you start' : 'Instructions', cta: s.sheet === 'start' ? 'Got it, start timer' : 'Got it' } : false,
+      closeSheet: function () { self.setState({ sheet: '' }); },
+      confirmSheet: function () { var start = self.state.sheet === 'start'; if (start && needsEarly) { self.setState({ sheet: 'early', briefSeen: true }); return; } self.setState({ sheet: '', briefSeen: true, running: start ? true : self.state.running, submitted: start ? false : self.state.submitted }); },
+      tasks: [
+        { bg: '#121212', fg: '#FFFFFF', project: 'WC Digital Agency', title: '[Website task title]', earlyNote: s.startedEarly ? '2h 31m before schedule' : '', status: s.submitted ? 'In review' : (fresh ? 'To do' : 'In progress'), sbg: fresh ? '#ECEAE4' : '#FFD43B', sfg: '#121212',
+          hasBrief: true, updated: false, briefBg: '#2A2926', briefBorder: '0',
+          brief: '[Full instructions written by Adeyemo Titilope — steps, links, files and what “done” looks like.]', onRead: function () { self.setState({ sheet: 'read' }); },
+          dot: run ? '#1F9D57' : '#8E8A82', anim: run ? 'wcpulse 1.4s ease-in-out infinite' : 'none', spent: morning ? '00:00:00' : '03:02:43', timeFg: '#FFD43B', est: '2hr 59min',
+          meta: (s.startedEarly ? 'Timer started 10:30 AM' : 'Not started') + ' · by Adeyemo Titilope', start: 'Oct 26, 1:01 PM', due: 'Oct 26, 4:00 PM', dueFg: '#FFFFFF', panel: '#1E1D1B', lbl: '#A8A49C',
+          startLabel: run ? 'Stop' : 'Start', icon: run ? pause : play, startBg: run ? '#FFFFFF' : '#2A2926', startFg: run ? '#121212' : '#FFFFFF',
+          locked: 'false', op: '1',
+          onStart: function () {
+            if (self.state.running) { self.setState({ running: false }); return; }
+            if (!self.state.briefSeen) { self.setState({ sheet: 'start' }); return; }
+            if (needsEarly) { self.setState({ sheet: 'early' }); return; }
+            self.setState({ running: true, submitted: false });
+          },
+          onSubmit: function () { self.setState({ submitted: true, running: false }); },
+          note: s.submitted ? 'Submitted for review. You can still restart the timer or resubmit.' : '', noteFg: '#FFD43B' },
+        { bg: '#FFFFFF', fg: '#121212', project: 'Contour Fajaas Africa', title: 'Work on Contourfajasafrica email', status: 'Deadline missed', sbg: '#FBE7E4', sfg: '#C0362C',
+          hasBrief: false, updated: false, briefBg: '', briefBorder: '0', brief: '', onRead: function () {},
+          dot: s.run2 ? '#1F9D57' : '#8E8A82', anim: s.run2 ? 'wcpulse 1.4s ease-in-out infinite' : 'none', spent: '00:00:00', timeFg: '#4D4A44', est: '2hr', meta: 'By Adeyemo Titilope', start: 'Oct 23, 3:00 PM', due: 'Oct 23, 5:00 PM', dueFg: '#C0362C', panel: '#F7F6F2', lbl: '#6A665F',
+          startLabel: s.run2 ? 'Stop' : 'Start', icon: s.run2 ? pause : play, startBg: s.run2 ? '#121212' : '#E2F2E7', startFg: s.run2 ? '#FFFFFF' : '#1F7A4A', locked: 'false', op: '1',
+          onStart: function () { self.setState({ run2: !self.state.run2 }); }, onSubmit: function () { self.setState({ run2: false }); }, note: 'Extension requested — you can keep working while it’s decided.', noteFg: '#8A5A00' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -17,22 +17,14 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Project::with(['client', 'manager', 'creator', 'members']);
-
-        if (in_array($user->role, ['staff', 'intern'])) {
-            $query->whereHas('members', fn($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'project_manager') {
-            $query->where('manager_id', $user->id)
-                  ->orWhereHas('members', fn($q) => $q->where('user_id', $user->id));
-        } elseif ($user->role === 'client') {
-            $query->where('client_id', $user->id);
-        }
+        $query = Project::with(['client', 'manager', 'creator', 'members'])->visibleTo($user);
 
         return response()->json($query->orderBy('created_at', 'desc')->get());
     }
 
     public function store(Request $request)
     {
+        $this->requireManager(request()->user());
         $data = $request->validate([
             'name' => 'required|string',
             'description' => 'nullable|string',
@@ -92,6 +84,7 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        $this->requireManager(request()->user());
         $data = $request->validate([
             'name' => 'sometimes|string',
             'description' => 'nullable|string',
@@ -144,6 +137,7 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        $this->requireManager(request()->user());
         $project->delete();
         return response()->json(['message' => 'Project deleted.']);
     }
@@ -188,6 +182,7 @@ class ProjectController extends Controller
 
     public function removeMember(Project $project, $userId)
     {
+        $this->requireManager(request()->user());
         ProjectMember::where('project_id', $project->id)->where('user_id', $userId)->delete();
         return response()->json(['message' => 'Member removed.']);
     }
@@ -200,6 +195,7 @@ class ProjectController extends Controller
 
     public function storePlan(Request $request, Project $project)
     {
+        $this->requireManager(request()->user());
         $data = $request->validate([
             'title' => 'required|string',
             'description' => 'nullable|string',
@@ -215,12 +211,14 @@ class ProjectController extends Controller
 
     public function updatePlan(Request $request, Project $project, ProjectPlan $plan)
     {
+        $this->requireManager(request()->user());
         $plan->update($request->validate(['title' => 'sometimes|string', 'description' => 'nullable|string']));
         return response()->json($plan);
     }
 
     public function destroyPlan(Project $project, ProjectPlan $plan)
     {
+        $this->requireManager(request()->user());
         $plan->delete();
         return response()->json(['message' => 'Plan deleted.']);
     }
@@ -228,6 +226,7 @@ class ProjectController extends Controller
     // Deliverables
     public function storeDeliverable(Request $request, Project $project, ProjectPlan $plan)
     {
+        $this->requireManager(request()->user());
         $data = $request->validate([
             'title' => 'required|string',
             'description' => 'nullable|string',
@@ -244,6 +243,7 @@ class ProjectController extends Controller
 
     public function updateDeliverable(Request $request, Project $project, ProjectPlan $plan, Deliverable $deliverable)
     {
+        $this->requireManager(request()->user());
         $data = $request->validate([
             'title' => 'sometimes|string',
             'description' => 'nullable|string',
@@ -270,6 +270,7 @@ class ProjectController extends Controller
 
     public function destroyDeliverable(Project $project, ProjectPlan $plan, Deliverable $deliverable)
     {
+        $this->requireManager(request()->user());
         $deliverable->delete();
         return response()->json(['message' => 'Deliverable deleted.']);
     }
@@ -329,6 +330,18 @@ class ProjectController extends Controller
             ['content' => $data['content'], 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
         );
         return response()->json($briefing, 201);
+    }
+
+    /**
+     * Creating and changing projects, their members and plans is for
+     * managers (incl. Customer Support Officers). The old screens only hid
+     * these buttons; the API allowed anyone.
+     */
+    private function requireManager($user): void
+    {
+        if (!$user->isManager()) {
+            abort(response()->json(['message' => 'Only managers can change projects.'], 403));
+        }
     }
 
     private function authorizeProjectAccess($user, Project $project)

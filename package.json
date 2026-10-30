@@ -5,7 +5,9 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "inject-theme": "node scripts/inject-theme.mjs"
+        "inject-theme": "node scripts/inject-theme.mjs",
+        "frontend:dev": "npm --prefix frontend run dev",
+        "frontend:build": "node scripts/build-frontend.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
