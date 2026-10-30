@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { initials } from '@/components/wc';
 import { errorText } from '@/lib/tasks';
 import { projectApi, type ChatMessage } from '@/lib/projects';
+import { MessageText } from '@/components/inbox/Chats';
 
 // Project team chat: the preview on Overview (last few messages) and the
 // full Team chat tab. No live updates on this server, so it polls.
@@ -57,7 +58,8 @@ export function ChatMessages({ messages, meId, compact }: { messages: ChatMessag
                   !compact && mine ? 'rounded-[16px_4px_16px_16px] bg-yellow' : 'rounded-[4px_16px_16px_16px] bg-surface-2',
                 )}
               >
-                {m.content}
+                {/* Light bubbles here (yellow / grey), so the quote uses the light style. */}
+                <MessageText content={m.content} mine={false} />
               </span>
             </div>
           </div>

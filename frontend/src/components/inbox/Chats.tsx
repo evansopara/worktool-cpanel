@@ -4,16 +4,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ArrowLeft, Search, SendHorizontal } from 'lucide-react';
+import { ArrowLeft, Copy, Forward, MoreHorizontal, Pin, PinOff, Reply, Search, SendHorizontal, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { User } from '@/types';
 import { usersApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { initials } from '@/components/wc';
+import { Sheet, SheetActions, SheetDescription, SheetTitle, initials } from '@/components/wc';
 import { roleLabel } from '@/components/shell/nav';
 import { errorText } from '@/lib/tasks';
 import type { ChatMessage } from '@/lib/projects';
 import { inboxApi, type ConvKey, type InboxData, type Preview } from '@/lib/inbox';
+import { forwardContent, parseMessage, plainText, replyContent } from '@/lib/messages';
 
 // Chats tab of Inbox: conversation list (channels, project chats, direct
 // messages) and the open conversation. No live updates on this server, so
@@ -141,7 +142,7 @@ export function ConversationList({
                       </span>
                       <span className="flex items-center gap-2">
                         <span className={cn('min-w-0 flex-1 truncate', mobile ? 'text-[13.5px] text-ink-2' : 'text-[13px] opacity-75')}>
-                          {c.preview ? `${c.preview.mine ? 'You' : (c.preview.sender ?? '').split(' ')[0]}: ${c.preview.content}` : c.meta}
+                          {c.preview ? `${c.preview.mine ? 'You' : (c.preview.sender ?? '').split(' ')[0]}: ${plainText(c.preview.content)}` : c.meta}
                         </span>
                         {c.unread > 0 && <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-yellow px-[5px] text-[11px] font-bold text-ink">{c.unread}</span>}
                       </span>
@@ -157,6 +158,7 @@ export function ConversationList({
   );
 }
 
+
 /** The open conversation: desktop pane, or a full-screen sheet on phones. */
 export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; onBack: () => void }) {
   const qc = useQueryClient();
@@ -166,12 +168,13 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
   useEffect(() => {
     if (loaded) qc.invalidateQueries({ queryKey: ['badges'] });
   }, [conv.key, loaded, qc]);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['conversation', conv.key] });
+    qc.invalidateQueries({ queryKey: ['inbox'] });
+  };
   const send = useMutation({
     mutationFn: (text: string) => inboxApi.send(conv.key, text),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['conversation', conv.key] });
-      qc.invalidateQueries({ queryKey: ['inbox'] });
-    },
+    onSuccess: refresh,
     onError: (err) => toast.error(errorText(err, 'Message not sent.')),
   });
   // Opening a direct message marks it read on the server; refresh the list's badge.
@@ -185,11 +188,68 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
     // Braces matter: newer browsers return a Promise from scrollIntoView.
     end.current?.scrollIntoView({ block: 'end' });
   }, [list.length, conv.key]);
+
   const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState<{ name: string; content: string } | null>(null);
+  const [acting, setActing] = useState<ChatMessage | null>(null);
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [deleting, setDeleting] = useState<ChatMessage | null>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+
   const submit = () => {
-    if (!text.trim() || send.isPending) return;
-    send.mutate(text.trim());
+    const body = text.trim();
+    if (!body || send.isPending) return;
+    send.mutate(replyTo ? replyContent(replyTo.name, replyTo.content, body) : body);
     setText('');
+    setReplyTo(null);
+  };
+
+  const lead = user.role === 'operations_manager' || user.role === 'team_lead';
+  const senderId = (m: ChatMessage) => m.sender?.id ?? m.sender_id;
+  const senderName = (m: ChatMessage) => (senderId(m) === user.id ? 'You' : fullName(m.sender ?? {}) || 'Someone');
+  const canDelete = (m: ChatMessage) => senderId(m) === user.id || (lead && conv.key[0] !== 'u');
+  const canPin = conv.key === 'general' ? lead : true;
+
+  const pin = useMutation({
+    mutationFn: (m: ChatMessage) => inboxApi.pin(conv.key, m.id, !m.is_pinned),
+    onSuccess: (_, m) => {
+      refresh();
+      toast.success(m.is_pinned ? 'Message unpinned' : 'Message pinned');
+    },
+    onError: (err) => toast.error(errorText(err, 'Could not pin the message.')),
+  });
+  const remove = useMutation({
+    mutationFn: (m: ChatMessage) => inboxApi.remove(conv.key, m.id),
+    onSuccess: () => {
+      refresh();
+      setDeleting(null);
+      toast.success('Message deleted');
+    },
+    onError: (err) => toast.error(errorText(err, 'Could not delete the message.')),
+  });
+
+  const copy = (m: ChatMessage) => {
+    navigator.clipboard
+      ?.writeText(plainText(m.content))
+      .then(() => toast.success('Copied'))
+      .catch(() => toast.error('Could not copy.'));
+  };
+  const startReply = (m: ChatMessage) => {
+    setReplyTo({ name: senderId(m) === user.id ? fullName(user) || 'You' : fullName(m.sender ?? {}) || 'Someone', content: m.content });
+  };
+  // Starting a reply puts the cursor in the message box.
+  useEffect(() => {
+    if (replyTo) box.current?.focus();
+  }, [replyTo]);
+
+  const pinned = list.filter((m) => m.is_pinned);
+  const [pinIndex, setPinIndex] = useState(0);
+  const shownPin = pinned.length ? pinned[pinIndex % pinned.length] : null;
+  const jumpTo = (id: number) => {
+    const el = document.getElementById(`msg-${id}`);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el?.classList.add('ring-2', 'ring-yellow');
+    setTimeout(() => el?.classList.remove('ring-2', 'ring-yellow'), 1600);
   };
 
   const header = (
@@ -217,10 +277,29 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
         )}
       </header>
 
-      <div className="mx-2.5 flex flex-1 flex-col gap-3.5 overflow-y-auto rounded-t-[30px] bg-surface px-3 py-[18px] lg:m-0 lg:rounded-none lg:px-[22px] lg:py-6">
+      {shownPin && (
+        <button
+          type="button"
+          onClick={() => {
+            jumpTo(shownPin.id);
+            setPinIndex((i) => i + 1);
+          }}
+          className="mx-2.5 flex shrink-0 cursor-pointer items-center gap-2.5 rounded-t-[18px] border-0 border-b border-line bg-surface px-4 py-2.5 text-left font-ui text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink lg:m-0 lg:rounded-none lg:px-[22px]"
+        >
+          <Pin className="size-4 shrink-0 text-ink-2" aria-hidden="true" />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">
+              Pinned{pinned.length > 1 ? ` · ${(pinIndex % pinned.length) + 1} of ${pinned.length}` : ''}
+            </span>
+            <span className="truncate text-sm">{plainText(shownPin.content)}</span>
+          </span>
+        </button>
+      )}
+
+      <div className={cn('mx-2.5 flex flex-1 flex-col gap-3.5 overflow-y-auto bg-surface px-3 py-[18px] lg:m-0 lg:rounded-none lg:px-[22px] lg:py-6', !shownPin && 'rounded-t-[30px]')}>
         {messages.isLoading && <p className="m-auto text-sm text-ink-3">Loading…</p>}
         {!messages.isLoading && list.length === 0 && <p className="m-auto text-sm text-ink-3">No messages yet. Say hello.</p>}
-        <MessageList messages={list} meId={user.id} />
+        <MessageList messages={list} meId={user.id} onAct={setActing} onJump={jumpTo} />
         <div ref={end} />
       </div>
 
@@ -229,16 +308,145 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
           e.preventDefault();
           submit();
         }}
-        className="mx-2.5 flex shrink-0 items-center gap-2 border-t border-line bg-surface px-2.5 pt-2.5 pb-[max(30px,env(safe-area-inset-bottom))] lg:m-0 lg:gap-2.5 lg:px-[18px] lg:py-4"
+        className="mx-2.5 flex shrink-0 flex-col gap-2 border-t border-line bg-surface px-2.5 pt-2.5 pb-[max(30px,env(safe-area-inset-bottom))] lg:m-0 lg:px-[18px] lg:py-4"
       >
-        <label className="flex h-[46px] flex-1 items-center rounded-full bg-stone px-4 focus-within:ring-2 focus-within:ring-ink lg:h-12 lg:px-[18px]">
-          <input type="text" aria-label="Message" placeholder={`Message ${conv.square ? (conv.key === 'general' ? 'everyone' : conv.title) : conv.title.split(' ')[0]}`} value={text} onChange={(e) => setText(e.target.value)} className="min-w-0 flex-1 border-0 bg-transparent font-ui text-[15px] text-ink outline-none" />
-        </label>
-        <button type="submit" aria-label="Send" disabled={!text.trim() || send.isPending} className="flex size-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-yellow text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:opacity-50 lg:size-12">
-          <SendHorizontal className="size-[18px]" aria-hidden="true" />
-        </button>
+        {replyTo && (
+          <div className="flex items-start gap-2 rounded-2xl border-l-4 border-yellow bg-stone py-2 pr-2 pl-3">
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[12.5px] font-bold">Replying to {replyTo.name}</span>
+              <span className="truncate text-[13px] text-ink-2">{plainText(replyTo.content)}</span>
+            </span>
+            <button type="button" aria-label="Cancel reply" onClick={() => setReplyTo(null)} className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-ink-2 outline-none hover:bg-surface focus-visible:ring-2 focus-visible:ring-ink">
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+        <div className="flex items-end gap-2 lg:gap-2.5">
+          <label className="flex min-h-[46px] flex-1 items-center rounded-[23px] bg-stone px-4 py-2 focus-within:ring-2 focus-within:ring-ink lg:min-h-12 lg:px-[18px]">
+            <textarea
+              ref={box}
+              rows={1}
+              aria-label="Message"
+              placeholder={`Message ${conv.square ? (conv.key === 'general' ? 'everyone' : conv.title) : conv.title.split(' ')[0]}`}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                // Desktop: Enter sends, Shift+Enter adds a line. Phones: Enter adds a line.
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && window.matchMedia('(pointer: fine)').matches) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              className="max-h-32 min-w-0 flex-1 resize-none border-0 bg-transparent font-ui text-[15px] leading-normal text-ink outline-none [field-sizing:content]"
+            />
+          </label>
+          <button type="submit" aria-label="Send" disabled={!text.trim() || send.isPending} className="flex size-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-yellow text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:opacity-50 lg:size-12">
+            <SendHorizontal className="size-[18px]" aria-hidden="true" />
+          </button>
+        </div>
       </form>
+
+      {/* Message actions */}
+      <Sheet open={!!acting} onOpenChange={(o) => !o && setActing(null)}>
+        {acting && (
+          <>
+            <SheetTitle>{senderName(acting)}</SheetTitle>
+            <SheetDescription className="line-clamp-2">{plainText(acting.content)}</SheetDescription>
+            <div className="flex flex-col">
+              {[
+                { label: 'Reply', icon: Reply, run: () => startReply(acting) },
+                { label: 'Copy', icon: Copy, run: () => copy(acting) },
+                { label: 'Forward', icon: Forward, run: () => setForwarding(acting) },
+                ...(canPin ? [{ label: acting.is_pinned ? 'Unpin' : 'Pin', icon: acting.is_pinned ? PinOff : Pin, run: () => pin.mutate(acting) }] : []),
+                ...(canDelete(acting) ? [{ label: 'Delete', icon: Trash2, run: () => setDeleting(acting), danger: true }] : []),
+              ].map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => {
+                    setActing(null);
+                    a.run();
+                  }}
+                  className={cn(
+                    'flex h-[52px] cursor-pointer items-center gap-3.5 rounded-2xl border-0 bg-transparent px-3 text-left font-ui text-[15.5px] font-semibold outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ink',
+                    'danger' in a && a.danger ? 'text-missed' : 'text-ink',
+                  )}
+                >
+                  <a.icon className="size-[18px]" aria-hidden="true" />
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </Sheet>
+
+      <ForwardSheet
+        message={forwarding}
+        user={user}
+        onClose={() => setForwarding(null)}
+      />
+
+      <Sheet open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        {deleting && (
+          <>
+            <SheetTitle>Delete this message?</SheetTitle>
+            <SheetDescription>It’s removed for everyone in this chat.</SheetDescription>
+            <SheetActions confirmLabel={remove.isPending ? 'Deleting…' : 'Delete'} confirmDisabled={remove.isPending} onConfirm={() => remove.mutate(deleting)} />
+          </>
+        )}
+      </Sheet>
     </section>
+  );
+}
+
+/** Pick a chat to forward a message to. */
+function ForwardSheet({ message, user, onClose }: { message: ChatMessage | null; user: User; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { sections } = useConversations(user);
+  const [q, setQ] = useState('');
+  const forward = useMutation({
+    mutationFn: (to: Conv) => inboxApi.send(to.key, forwardContent(message!.content)),
+    onSuccess: (_, to) => {
+      qc.invalidateQueries({ queryKey: ['conversation', to.key] });
+      qc.invalidateQueries({ queryKey: ['inbox'] });
+      toast.success(`Forwarded to ${to.title}`);
+      onClose();
+    },
+    onError: (err) => toast.error(errorText(err, 'Could not forward the message.')),
+  });
+  const term = q.trim().toLowerCase();
+  const all = sections.flatMap((s) => s.items).filter((c) => !term || c.title.toLowerCase().includes(term));
+  return (
+    <Sheet open={!!message} onOpenChange={(o) => !o && onClose()}>
+      {message && (
+        <>
+          <SheetTitle>Forward to…</SheetTitle>
+          <label className="flex h-12 items-center gap-2 rounded-full bg-stone px-[18px] text-ink-3 focus-within:ring-2 focus-within:ring-ink">
+            <Search className="size-4 shrink-0" aria-hidden="true" />
+            <input type="search" aria-label="Search chats" placeholder="Search chats" value={q} onChange={(e) => setQ(e.target.value)} className="min-w-0 flex-1 border-0 bg-transparent font-ui text-[15px] text-ink outline-none" />
+          </label>
+          <ul className="m-0 flex max-h-[50vh] list-none flex-col overflow-y-auto p-0">
+            {all.map((c) => (
+              <li key={c.key}>
+                <button
+                  type="button"
+                  disabled={forward.isPending}
+                  onClick={() => forward.mutate(c)}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border-0 bg-transparent px-2 py-2 text-left font-ui text-ink outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-ink disabled:opacity-50"
+                >
+                  <span className={cn('flex size-9 shrink-0 items-center justify-center text-xs font-bold', c.square ? 'rounded-xl' : 'rounded-full', c.tone)}>{c.ini}</span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate text-[15px] font-semibold">{c.title}</span>
+                    <span className="truncate text-[12.5px] text-ink-3">{c.meta}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Sheet>
   );
 }
 
@@ -248,7 +456,88 @@ function dayLabel(d: Date) {
   return format(d, 'EEEE, MMM d');
 }
 
-function MessageList({ messages, meId }: { messages: ChatMessage[]; meId: number }) {
+/** The text inside a bubble: forwarded label, quoted reply, then the message. */
+export function MessageText({ content, mine, onQuote }: { content: string; mine: boolean; onQuote?: () => void }) {
+  const m = parseMessage(content);
+  return (
+    <>
+      {m.forwarded && (
+        <span className={cn('mb-1 flex items-center gap-1 text-[12px] italic', mine ? 'text-on-dark' : 'text-ink-3')}>
+          <Forward className="size-3" aria-hidden="true" />
+          Forwarded
+        </span>
+      )}
+      {m.reply && (
+        <span
+          role={onQuote ? 'button' : undefined}
+          onClick={onQuote}
+          className={cn('mb-1.5 flex flex-col rounded-xl border-l-4 border-yellow px-2.5 py-1.5', mine ? 'bg-dark-2' : 'bg-surface', onQuote && 'cursor-pointer')}
+        >
+          <span className="text-[12.5px] font-bold">{m.reply.name}</span>
+          <span className={cn('line-clamp-3 text-[13px]', mine ? 'text-on-dark' : 'text-ink-2')}>{m.reply.text}</span>
+        </span>
+      )}
+      {m.body}
+    </>
+  );
+}
+
+/** Long-press (phones) or the ⋯ button (desktop) opens a message's actions. */
+function useLongPress(onLong: () => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  return {
+    onTouchStart: () => {
+      clear();
+      timer.current = setTimeout(onLong, 450);
+    },
+    onTouchEnd: clear,
+    onTouchMove: clear,
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+      onLong();
+    },
+  };
+}
+
+function Bubble({ m, mine, onAct, onJump, list }: { m: ChatMessage; mine: boolean; onAct: (m: ChatMessage) => void; onJump: (id: number) => void; list: ChatMessage[] }) {
+  const press = useLongPress(() => onAct(m));
+  // A quoted reply jumps to the newest earlier message from that person that starts with the quote.
+  const parsed = parseMessage(m.content);
+  const quoted = parsed.reply
+    ? [...list]
+        .reverse()
+        .find((x) => x.id < m.id && plainText(x.content).startsWith(parsed.reply!.text.split('\n')[0]))
+    : undefined;
+  return (
+    <div className={cn('group flex items-center gap-1', mine && 'flex-row-reverse')}>
+      <span
+        id={`msg-${m.id}`}
+        {...press}
+        className={cn(
+          'px-[15px] py-[11px] text-[15px] leading-normal transition-shadow select-text [overflow-wrap:anywhere] whitespace-pre-wrap [-webkit-touch-callout:none]',
+          mine ? 'rounded-[20px_6px_20px_20px] bg-ink text-white' : 'rounded-[6px_20px_20px_20px] bg-bubble text-ink',
+        )}
+      >
+        {m.is_pinned && <Pin className={cn('mr-1 mb-0.5 inline size-3', mine ? 'text-yellow' : 'text-ink-3')} aria-label="Pinned" />}
+        <MessageText content={m.content} mine={mine} onQuote={quoted ? () => onJump(quoted.id) : undefined} />
+      </span>
+      <button
+        type="button"
+        aria-label="Message actions"
+        onClick={() => onAct(m)}
+        className="hidden size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-ink-3 opacity-0 outline-none group-hover:opacity-100 hover:bg-stone focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ink lg:flex"
+      >
+        <MoreHorizontal className="size-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function MessageList({ messages, meId, onAct, onJump }: { messages: ChatMessage[]; meId: number; onAct: (m: ChatMessage) => void; onJump: (id: number) => void }) {
   const days = messages.map((m) => dayLabel(new Date(m.created_at)));
   const senders: number[] = [];
   return (
@@ -272,14 +561,7 @@ function MessageList({ messages, meId }: { messages: ChatMessage[]; meId: number
                     {who} <span className="font-normal text-ink-3">{format(new Date(m.created_at), 'h:mm a')}</span>
                   </span>
                 )}
-                <span
-                  className={cn(
-                    'px-[15px] py-[11px] text-[15px] leading-normal [overflow-wrap:anywhere] whitespace-pre-wrap',
-                    mine ? 'rounded-[20px_6px_20px_20px] bg-ink text-white' : 'rounded-[6px_20px_20px_20px] bg-bubble text-ink',
-                  )}
-                >
-                  {m.content}
-                </span>
+                <Bubble m={m} mine={mine} onAct={onAct} onJump={onJump} list={messages} />
               </div>
             </div>
           </div>
