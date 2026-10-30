@@ -258,6 +258,44 @@ export function workingMinutes(from: Date, to: Date): number {
   return Math.round(total / 60_000);
 }
 
+/** Daily break: starts at "HH:MM" (24-hour, as stored on the user) and lasts an hour. */
+export const BREAK_MINUTES = 60;
+
+function breakStart(v: string | null | undefined): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((v ?? '').trim());
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+/** "2:00–3:00 PM", or "11:30 AM–12:30 PM" across noon; null when no valid break is set. */
+export function fmtBreak(v: string | null | undefined): string | null {
+  const start = breakStart(v);
+  if (start === null) return null;
+  const end = (start + BREAK_MINUTES) % (24 * 60);
+  const part = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    return { text: `${h % 12 || 12}:${String(mins % 60).padStart(2, '0')}`, pm: h >= 12 };
+  };
+  const a = part(start);
+  const b = part(end);
+  const ampm = (pm: boolean) => (pm ? 'PM' : 'AM');
+  return a.pm === b.pm ? `${a.text}–${b.text} ${ampm(b.pm)}` : `${a.text} ${ampm(a.pm)}–${b.text} ${ampm(b.pm)}`;
+}
+
+/** Whether a task window (start → deadline) runs into the daily break on any day. */
+export function overlapsBreak(v: string | null | undefined, start: Date, end: Date): boolean {
+  const mins = breakStart(v);
+  if (mins === null || !(end > start)) return false;
+  const day = new Date(start);
+  day.setHours(0, 0, 0, 0);
+  for (; day < end; day.setDate(day.getDate() + 1)) {
+    const from = new Date(day.getTime() + mins * 60_000);
+    const to = new Date(from.getTime() + BREAK_MINUTES * 60_000);
+    if (from < end && to > start) return true;
+  }
+  return false;
+}
+
 /** Staff lists shade tasks the assignee hasn't worked on yet. */
 export function notStarted(t: { status: string; has_been_started?: boolean; is_timer_running: boolean; logged_seconds: number }): boolean {
   return t.status !== 'completed' && !t.has_been_started && !t.is_timer_running && t.logged_seconds === 0;

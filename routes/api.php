@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [AuthController::class, 'users']);
     Route::post('/users', [AuthController::class, 'createUser']);
     Route::put('/users/{user}', [AuthController::class, 'updateUser']);
+    Route::put('/users/{user}/break', [AuthController::class, 'updateBreak']);
     Route::delete('/users/{user}', [AuthController::class, 'deleteUser']);
     Route::post('/users/{user}/reset-password-token', [AuthController::class, 'resetPasswordToken']);
     Route::post('/users/{user}/deactivate', [AuthController::class, 'deactivateUser']);

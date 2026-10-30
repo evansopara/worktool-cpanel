@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,29 +25,43 @@ type Item = {
   created_at: string;
 };
 
+const PAGE_KEY = ['notifications', 'page'];
+
 export default function NotificationsPage() {
   const qc = useQueryClient();
-  // Opening this page marks everything read. The list keeps the flags it was
-  // fetched with, so what was unread stays under "New" for this visit.
+  // Its own cache entry, fetched fresh on every open (the alert poller keeps
+  // ['notifications'] fresh, which used to skip this page's fetch).
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ['notifications'],
-    queryFn: async () => {
-      const list: Item[] = (await notificationsApi.list()).data;
-      if (list.some((n) => !n.read)) {
-        await notificationsApi.markAllRead();
-        qc.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
-        qc.invalidateQueries({ queryKey: ['badges'] });
-      }
-      return list;
+    queryKey: PAGE_KEY,
+    queryFn: () => notificationsApi.list().then((r) => r.data),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  // Opening the page marks everything read, once. The ids it marked stay
+  // under "New" for this visit, however often the list is fetched again.
+  const markAll = useMutation({
+    mutationFn: (ids: number[]) => notificationsApi.markAllRead().then(() => ids),
+    onSuccess: () => {
+      qc.setQueryData(['notifications', 'unread-count'], 0);
+      qc.invalidateQueries({ queryKey: ['notifications'], exact: true });
+      qc.invalidateQueries({ queryKey: ['badges'] });
     },
   });
+  const unreadIds = items.filter((n) => !n.read).map((n) => n.id);
+  const markNow = markAll.isIdle && unreadIds.length > 0;
+  const mark = markAll.mutate;
+  useEffect(() => {
+    if (markNow) mark(unreadIds);
+  }, [markNow, mark, unreadIds]);
+
   // Drop the item in place; refetching would move "New" items to "Earlier".
   const remove = useMutation({
     mutationFn: (id: number) => notificationsApi.remove(id),
-    onSuccess: (_, id) => qc.setQueryData<Item[]>(['notifications'], (list) => list?.filter((n) => n.id !== id)),
+    onSuccess: (_, id) => qc.setQueryData<Item[]>(PAGE_KEY, (list) => list?.filter((n) => n.id !== id)),
   });
 
-  const isNew = (n: Item) => !n.read;
+  const isNew = (n: Item) => !n.read || (markAll.variables ?? []).includes(n.id);
   const fresh = items.filter(isNew);
   const earlier = items.filter((n) => !isNew(n));
 

@@ -8,7 +8,7 @@ import { ArrowLeft, KeyRound, Plus, Search, UserCheck, UserX } from 'lucide-reac
 import { toast } from 'sonner';
 import { usersApi } from '@/lib/api';
 import { cn, roleLabel } from '@/lib/utils';
-import { errorText } from '@/lib/tasks';
+import { errorText, fmtBreak } from '@/lib/tasks';
 import { Avatar, Sheet, SheetActions, SheetDescription, SheetTitle } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
 
@@ -26,6 +26,7 @@ type Account = {
   status: string;
   is_active: boolean;
   specialization?: string | null;
+  break_one_time?: string | null;
   department?: string | null;
   created_at: string;
 };
@@ -90,12 +91,13 @@ export function AdminScreen({ me }: { me: { id: number; role: string } }) {
       <article key={u.id} className="flex flex-col gap-3 rounded-[24px] bg-surface p-4 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-2.5 lg:rounded-none lg:border-t lg:border-line lg:bg-transparent lg:px-0 lg:py-3.5">
         <div className="flex min-w-0 items-center gap-3 lg:flex-[2.4_1_260px]">
           <Avatar name={fullName(u) || u.username} className={cn('size-11 lg:size-[42px]', tone(u))} />
-          <button type="button" disabled={!isOM} onClick={() => setEditing(u)} className="flex min-w-0 flex-1 cursor-pointer flex-col gap-px border-0 bg-transparent p-0 text-left font-ui text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:cursor-default">
+          <button type="button" onClick={() => setEditing(u)} className="flex min-w-0 flex-1 cursor-pointer flex-col gap-px border-0 bg-transparent p-0 text-left font-ui text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink disabled:cursor-default">
             <span className="text-[15.5px] font-bold">{fullName(u) || u.username}</span>
             <span className="truncate text-[12.5px] text-ink-3 lg:text-[13px]">
               {u.email || (isOM ? 'Add email…' : 'No email')}
               <span className="hidden lg:inline"> · @{u.username}</span>
             </span>
+            <span className="text-[12.5px] font-semibold text-ink-2">{fmtBreak(u.break_one_time) ? `Break ${fmtBreak(u.break_one_time)}` : 'No break set'}</span>
           </button>
           <StatusBadge status={status} st={st} className="lg:hidden" />
         </div>
@@ -206,7 +208,7 @@ export function AdminScreen({ me }: { me: { id: number; role: string } }) {
       )}
 
       <CreateUser open={creating} onClose={() => setCreating(false)} />
-      <EditUser user={editing} onClose={() => setEditing(null)} />
+      <EditUser user={editing} full={isOM} onClose={() => setEditing(null)} />
       <Deactivate user={deactivating} onClose={() => setDeactivating(null)} />
     </PageBody>
   );
@@ -317,15 +319,16 @@ function CreateUserBody({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EditUser({ user, onClose }: { user: Account | null; onClose: () => void }) {
+/** Operations Managers edit everything; Team Leads only the daily break. */
+function EditUser({ user, full, onClose }: { user: Account | null; full: boolean; onClose: () => void }) {
   return (
     <Sheet open={user !== null} onOpenChange={(o) => !o && onClose()}>
-      {user && <EditUserBody key={user.id} user={user} onClose={onClose} />}
+      {user && <EditUserBody key={user.id} user={user} full={full} onClose={onClose} />}
     </Sheet>
   );
 }
 
-function EditUserBody({ user, onClose }: { user: Account; onClose: () => void }) {
+function EditUserBody({ user, full, onClose }: { user: Account; full: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const [f, setF] = useState({
     first_name: user.first_name,
@@ -334,10 +337,23 @@ function EditUserBody({ user, onClose }: { user: Account; onClose: () => void })
     specialization: user.specialization ?? '',
     department: user.department ?? '',
     status: user.status,
+    break_one_time: /^\d{1,2}:\d{2}$/.test(user.break_one_time ?? '') ? (user.break_one_time ?? '').padStart(5, '0') : '',
   });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const save = useMutation({
-    mutationFn: () => usersApi.update(user.id, { ...f, email: f.email.trim() || null, specialization: f.specialization.trim() || null, department: f.department.trim() || null }),
+    mutationFn: async () => {
+      if (full) {
+        await usersApi.update(user.id, {
+          first_name: f.first_name,
+          last_name: f.last_name,
+          status: f.status,
+          email: f.email.trim() || null,
+          specialization: f.specialization.trim() || null,
+          department: f.department.trim() || null,
+        });
+      }
+      if (f.break_one_time !== (user.break_one_time ?? '')) await usersApi.setBreak(user.id, f.break_one_time || null);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
       toast.success('User updated');
@@ -351,34 +367,43 @@ function EditUserBody({ user, onClose }: { user: Account; onClose: () => void })
       <SheetDescription>
         @{user.username} · {roleLabel(user.role)}
       </SheetDescription>
-      <div className="flex gap-2.5">
-        <Field name="First name">
-          <input value={f.first_name} onChange={set('first_name')} className={field} />
-        </Field>
-        <Field name="Last name">
-          <input value={f.last_name} onChange={set('last_name')} className={field} />
-        </Field>
-      </div>
-      <Field name="Email">
-        <input type="email" placeholder="name@example.com" value={f.email} onChange={set('email')} className={field} />
-      </Field>
-      <div className="flex gap-2.5">
-        <Field name="Specialization">
-          <input value={f.specialization} onChange={set('specialization')} className={field} />
-        </Field>
-        <Field name="Department">
-          <input value={f.department} onChange={set('department')} className={field} />
-        </Field>
-      </div>
-      <Field name="Account status">
-        <select value={f.status} onChange={set('status')} className={cn(field, 'capitalize')}>
-          {['active', 'pending', 'inactive'].map((s) => (
-            <option key={s} value={s}>
-              {s[0].toUpperCase() + s.slice(1)}
-            </option>
-          ))}
-        </select>
-      </Field>
+      {full && (
+        <>
+          <div className="flex gap-2.5">
+            <Field name="First name">
+              <input value={f.first_name} onChange={set('first_name')} className={field} />
+            </Field>
+            <Field name="Last name">
+              <input value={f.last_name} onChange={set('last_name')} className={field} />
+            </Field>
+          </div>
+          <Field name="Email">
+            <input type="email" placeholder="name@example.com" value={f.email} onChange={set('email')} className={field} />
+          </Field>
+          <div className="flex gap-2.5">
+            <Field name="Specialization">
+              <input value={f.specialization} onChange={set('specialization')} className={field} />
+            </Field>
+            <Field name="Department">
+              <input value={f.department} onChange={set('department')} className={field} />
+            </Field>
+          </div>
+          <Field name="Account status">
+            <select value={f.status} onChange={set('status')} className={cn(field, 'capitalize')}>
+              {['active', 'pending', 'inactive'].map((s) => (
+                <option key={s} value={s}>
+                  {s[0].toUpperCase() + s.slice(1)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </>
+      )}
+      <label className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className={label}>Daily break starts</span>
+        <input type="time" step={300} value={f.break_one_time} onChange={set('break_one_time')} className={field} />
+        <span className="text-[12.5px] text-ink-3">{fmtBreak(f.break_one_time) ? `Break ${fmtBreak(f.break_one_time)}, every working day.` : 'No break set. Breaks last an hour.'}</span>
+      </label>
       <SheetActions confirmLabel="Save changes" confirmDisabled={!f.first_name.trim() || save.isPending} onConfirm={() => save.mutate()} />
     </>
   );
