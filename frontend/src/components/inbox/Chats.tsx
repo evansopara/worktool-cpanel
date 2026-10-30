@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ArrowLeft, Copy, Forward, MoreHorizontal, Pin, PinOff, Reply, Search, SendHorizontal, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Copy, Forward, MoreHorizontal, Pin, PinOff, Reply, Search, SendHorizontal, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { User } from '@/types';
 import { usersApi } from '@/lib/api';
@@ -183,11 +183,32 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
     if (conv.unread && messages.isSuccess) qc.invalidateQueries({ queryKey: ['inbox'] });
   }, [conv.unread, messages.isSuccess, qc]);
 
+  // Follow new messages only while you're at the bottom (or just sent one);
+  // otherwise leave your place and show the jump-down button with a count.
   const end = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
+  const [seenId, setSeenId] = useState(0);
+  const lastId = list.length ? list[list.length - 1].id : 0;
+  const lastMine = list.length ? (list[list.length - 1].sender?.id ?? list[list.length - 1].sender_id) === user.id : false;
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView.
-    end.current?.scrollIntoView({ block: 'end' });
-  }, [list.length, conv.key]);
+    if (atBottomRef.current || lastMine) end.current?.scrollIntoView({ block: 'end' });
+  }, [lastId, lastMine]);
+  const onScroll = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    atBottomRef.current = bottom;
+    setAtBottom(bottom);
+    if (bottom) setSeenId(lastId);
+  };
+  const toBottom = () => {
+    end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    setSeenId(lastId);
+  };
+  const unseen = atBottom ? 0 : list.filter((m) => m.id > seenId && (m.sender?.id ?? m.sender_id) !== user.id).length;
 
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<{ name: string; content: string } | null>(null);
@@ -245,11 +266,17 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
   const pinned = list.filter((m) => m.is_pinned);
   const [pinIndex, setPinIndex] = useState(0);
   const shownPin = pinned.length ? pinned[pinIndex % pinned.length] : null;
+  const [highlightId, setHighlightId] = useState<number | null>(null);
   const jumpTo = (id: number) => {
-    const el = document.getElementById(`msg-${id}`);
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    el?.classList.add('ring-2', 'ring-yellow');
-    setTimeout(() => el?.classList.remove('ring-2', 'ring-yellow'), 1600);
+    document.getElementById(`msg-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setHighlightId(id);
+    setTimeout(() => setHighlightId((h) => (h === id ? null : h)), 1800);
+  };
+  // Tapping a quote: find the message it quotes among the loaded ones.
+  const openQuote = (m: ChatMessage) => {
+    const original = findQuoted(m, list);
+    if (original) jumpTo(original.id);
+    else toast('That message is too far back to show here.');
   };
 
   const header = (
@@ -296,12 +323,25 @@ export function Conversation({ conv, user, onBack }: { conv: Conv; user: User; o
         </button>
       )}
 
-      <div className={cn('mx-2.5 flex flex-1 flex-col gap-3.5 overflow-y-auto bg-surface px-3 py-[18px] lg:m-0 lg:rounded-none lg:px-[22px] lg:py-6', !shownPin && 'rounded-t-[30px]')}>
+      <div ref={scroller} onScroll={onScroll} className={cn('mx-2.5 flex flex-1 flex-col gap-3.5 overflow-y-auto bg-surface px-3 py-[18px] lg:m-0 lg:rounded-none lg:px-[22px] lg:py-6', !shownPin && 'rounded-t-[30px]')}>
         {messages.isLoading && <p className="m-auto text-sm text-ink-3">Loading…</p>}
         {!messages.isLoading && list.length === 0 && <p className="m-auto text-sm text-ink-3">No messages yet. Say hello.</p>}
-        <MessageList messages={list} meId={user.id} onAct={setActing} onJump={jumpTo} />
+        <MessageList messages={list} meId={user.id} onAct={setActing} onQuote={openQuote} highlightId={highlightId} />
         <div ref={end} />
       </div>
+      {!atBottom && (
+        <button
+          type="button"
+          aria-label={unseen ? `${unseen} new message${unseen === 1 ? '' : 's'}, scroll to the latest` : 'Scroll to the latest message'}
+          onClick={toBottom}
+          className="relative z-10 -mt-14 mr-5 mb-2 flex size-11 shrink-0 cursor-pointer items-center justify-center self-end rounded-full border-0 bg-surface text-ink shadow-float outline-none focus-visible:ring-2 focus-visible:ring-ink lg:mr-6"
+        >
+          <ChevronDown className="size-5" aria-hidden="true" />
+          {unseen > 0 && (
+            <span className="absolute -top-1.5 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow px-1 text-[11px] font-bold text-ink">{unseen > 99 ? '99+' : unseen}</span>
+          )}
+        </button>
+      )}
 
       <form
         onSubmit={(e) => {
@@ -450,6 +490,26 @@ function ForwardSheet({ message, user, onClose }: { message: ChatMessage | null;
   );
 }
 
+/**
+ * The message a reply quotes: the newest earlier one whose text starts like
+ * the quote (spacing, case and a trailing "…" ignored), preferring the person
+ * named in the quote. Older replies quoted loosely, so a near match counts.
+ */
+function findQuoted(m: ChatMessage, list: ChatMessage[]): ChatMessage | undefined {
+  const reply = parseMessage(m.content).reply;
+  if (!reply) return undefined;
+  const squash = (t: string) => t.toLowerCase().replace(/[.…]+$/u, '').replace(/\s+/g, ' ').trim();
+  const quote = squash(reply.text).slice(0, 60);
+  if (!quote) return undefined;
+  const earlier = list.filter((x) => x.id < m.id).reverse();
+  const matches = earlier.filter((x) => {
+    const body = squash(plainText(x.content));
+    return body.startsWith(quote) || (quote.length >= 12 && body.includes(quote));
+  });
+  const named = matches.find((x) => fullName(x.sender ?? {}) === reply.name);
+  return named ?? matches[0];
+}
+
 function dayLabel(d: Date) {
   if (isToday(d)) return 'Today';
   if (isYesterday(d)) return 'Yesterday';
@@ -503,27 +563,22 @@ function useLongPress(onLong: () => void) {
   };
 }
 
-function Bubble({ m, mine, onAct, onJump, list }: { m: ChatMessage; mine: boolean; onAct: (m: ChatMessage) => void; onJump: (id: number) => void; list: ChatMessage[] }) {
+function Bubble({ m, mine, onAct, onQuote, highlighted }: { m: ChatMessage; mine: boolean; onAct: (m: ChatMessage) => void; onQuote: (m: ChatMessage) => void; highlighted: boolean }) {
   const press = useLongPress(() => onAct(m));
-  // A quoted reply jumps to the newest earlier message from that person that starts with the quote.
-  const parsed = parseMessage(m.content);
-  const quoted = parsed.reply
-    ? [...list]
-        .reverse()
-        .find((x) => x.id < m.id && plainText(x.content).startsWith(parsed.reply!.text.split('\n')[0]))
-    : undefined;
+  const isReply = !!parseMessage(m.content).reply;
   return (
     <div className={cn('group flex items-center gap-1', mine && 'flex-row-reverse')}>
       <span
         id={`msg-${m.id}`}
         {...press}
         className={cn(
-          'px-[15px] py-[11px] text-[15px] leading-normal transition-shadow select-text [overflow-wrap:anywhere] whitespace-pre-wrap [-webkit-touch-callout:none]',
+          highlighted && 'ring-4 ring-yellow',
+          'px-[15px] py-[11px] text-[15px] leading-normal transition-shadow duration-300 select-text [overflow-wrap:anywhere] whitespace-pre-wrap [-webkit-touch-callout:none]',
           mine ? 'rounded-[20px_6px_20px_20px] bg-ink text-white' : 'rounded-[6px_20px_20px_20px] bg-bubble text-ink',
         )}
       >
         {m.is_pinned && <Pin className={cn('mr-1 mb-0.5 inline size-3', mine ? 'text-yellow' : 'text-ink-3')} aria-label="Pinned" />}
-        <MessageText content={m.content} mine={mine} onQuote={quoted ? () => onJump(quoted.id) : undefined} />
+        <MessageText content={m.content} mine={mine} onQuote={isReply ? () => onQuote(m) : undefined} />
       </span>
       <button
         type="button"
@@ -537,7 +592,19 @@ function Bubble({ m, mine, onAct, onJump, list }: { m: ChatMessage; mine: boolea
   );
 }
 
-function MessageList({ messages, meId, onAct, onJump }: { messages: ChatMessage[]; meId: number; onAct: (m: ChatMessage) => void; onJump: (id: number) => void }) {
+function MessageList({
+  messages,
+  meId,
+  onAct,
+  onQuote,
+  highlightId,
+}: {
+  messages: ChatMessage[];
+  meId: number;
+  onAct: (m: ChatMessage) => void;
+  onQuote: (m: ChatMessage) => void;
+  highlightId: number | null;
+}) {
   const days = messages.map((m) => dayLabel(new Date(m.created_at)));
   const senders: number[] = [];
   return (
@@ -561,7 +628,7 @@ function MessageList({ messages, meId, onAct, onJump }: { messages: ChatMessage[
                     {who} <span className="font-normal text-ink-3">{format(new Date(m.created_at), 'h:mm a')}</span>
                   </span>
                 )}
-                <Bubble m={m} mine={mine} onAct={onAct} onJump={onJump} list={messages} />
+                <Bubble m={m} mine={mine} onAct={onAct} onQuote={onQuote} highlighted={highlightId === m.id} />
               </div>
             </div>
           </div>
