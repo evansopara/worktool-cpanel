@@ -87,6 +87,24 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
     setPermission(Notification.permission);
   }, []);
 
+  // Opening the app (or switching back to it) clears this app's notifications
+  // from the phone's notification bar, like chat apps do. They stay unread in
+  // the app's own bell until looked at.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    const clearTray = () => {
+      if (document.visibilityState !== 'visible') return;
+      navigator.serviceWorker
+        .getRegistration('/')
+        .then((reg) => reg?.getNotifications())
+        .then((list) => list?.forEach((n) => n.close()))
+        .catch(() => {});
+    };
+    clearTray();
+    document.addEventListener('visibilitychange', clearTray);
+    return () => document.removeEventListener('visibilitychange', clearTray);
+  }, []);
+
   useEffect(() => {
     audioRef.current = new Audio(SOUND_URL);
     audioRef.current.volume = 0.5;
