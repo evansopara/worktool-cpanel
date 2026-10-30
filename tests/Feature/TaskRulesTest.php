@@ -390,20 +390,20 @@ class TaskRulesTest extends TestCase
         $this->assertTrue($stopped->meta['by_system']);
     }
 
-    public function test_estimate_alerts_at_80_and_100_percent(): void
+    public function test_reaching_the_estimate_is_logged_without_notifications(): void
     {
         $task = $this->task(['deadline' => '2026-10-26 18:00:00', 'working_hours' => 1, 'working_minutes' => 0]);
         Sanctum::actingAs($this->staff);
         $this->postJson("/api/tasks/{$task->id}/timer/start")->assertOk();
 
+        // 80% and 100% of the estimate: no alerts any more (2026-10-30).
         Carbon::setTestNow(now()->addMinutes(48));
         $this->artisan('tasks:check-deadlines')->assertSuccessful();
-        $this->assertSame(['80% of estimate used'], Notification::where('user_id', $this->staff->id)->pluck('title')->all());
-
         Carbon::setTestNow(now()->addMinutes(12));
         $this->artisan('tasks:check-deadlines')->assertSuccessful();
         $this->artisan('tasks:check-deadlines')->assertSuccessful();
-        $this->assertSame(['Estimate reached'], Notification::where('user_id', $this->manager->id)->pluck('title')->all());
+
+        $this->assertSame(0, Notification::count());
         $this->assertSame(1, TaskEvent::where('type', TaskEvent::ESTIMATE_REACHED)->count());
         $this->assertTrue($task->fresh()->is_timer_running, 'the timer keeps running past the estimate');
     }
