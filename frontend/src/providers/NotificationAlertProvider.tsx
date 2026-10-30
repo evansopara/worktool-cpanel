@@ -13,6 +13,8 @@ const SOUND_URL = '/sounds/notification.wav';
 // TEMPORARY push debugging: the last push-setup failure is kept on the device
 // and shown under the header until push setup succeeds.
 const PUSH_ERROR_KEY = 'push_debug_error';
+// The in-app poller never alerts for notifications older than this.
+const ALERT_WINDOW_MS = 10 * 60_000;
 // Set when someone turns alerts off in Settings: no push, pop-ups or sound on
 // this device until they turn them back on.
 const ALERTS_OFF_KEY = 'alerts_off';
@@ -54,13 +56,13 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [pushError, setPushError] = useState<string | null>(null);
   const [alertsOff, setAlertsOff] = useState(false);
-  // True once this device is subscribed to push: the service worker then
-  // delivers every notification, so the poller below must not alert again
-  // (iOS ignores the shared tag and would show both).
-  const pushActive = useRef(false);
+  // True only when push could not be set up on this device. Until then the
+  // service worker delivers every notification, so the poller below must not
+  // show its own pop-up as well (iOS ignores the shared tag and shows both).
+  const pushFailed = useRef(false);
 
   const recordPushResult = useCallback((result: PushResult) => {
-    pushActive.current = result.ok;
+    pushFailed.current = !result.ok;
     const message = result.ok ? null : `${result.step}: ${result.error}`;
     setPushError(message);
     try {
@@ -133,7 +135,7 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
     }
   }, [recordPushResult]);
 
-  const { data: notifications = [] } = useQuery<AppNotification[]>({
+  const { data: notifications = [], isSuccess: listLoaded } = useQuery<AppNotification[]>({
     queryKey: ['notifications'],
     queryFn: () => notificationsApi.list().then((r) => r.data),
     refetchInterval: 20_000,
@@ -141,7 +143,9 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
   });
 
   useEffect(() => {
-    if (!user) return;
+    // Wait for the real list: a baseline taken from the empty placeholder
+    // made every unread notification look new each time the app opened.
+    if (!user || !listLoaded) return;
 
     if (seenIds.current === null) {
       // First load after login: establish a baseline silently, don't alert
@@ -150,10 +154,17 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
       return;
     }
 
-    const fresh = notifications.filter((n) => !n.read && !seenIds.current!.has(n.id));
+    // Only notifications that arrived while the app was open, and never
+    // anything older than a few minutes (an app resumed after hours).
+    const recent = Date.now() - ALERT_WINDOW_MS;
+    const fresh = notifications.filter((n) => !n.read && !seenIds.current!.has(n.id) && new Date(n.created_at).getTime() >= recent);
     notifications.forEach((n) => seenIds.current!.add(n.id));
 
-    if (fresh.length === 0 || pushActive.current || alertsOff) return;
+    if (fresh.length === 0 || alertsOff) return;
+    // With push working on this device, the service worker already showed
+    // these (with sound); the app adds nothing.
+    const pushDelivers = permission === 'granted' && !pushFailed.current;
+    if (pushDelivers) return;
 
     audioRef.current?.play().catch(() => {});
 
@@ -174,7 +185,7 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
         }
       });
     }
-  }, [notifications, user, permission, alertsOff]);
+  }, [notifications, listLoaded, user, permission, alertsOff]);
 
   const setEnabled = useCallback(
     async (on: boolean) => {
@@ -191,7 +202,6 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
           await requestPermission();
         }
       } else {
-        pushActive.current = false;
         await unsubscribeFromPush();
         toast.success('Notifications are off for this device.');
       }
