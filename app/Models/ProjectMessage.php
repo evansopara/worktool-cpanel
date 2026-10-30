@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProjectMessage extends Model
 {
-    protected $fillable = ['project_id', 'sender_id', 'content', 'is_edited'];
-    protected $casts = ['is_edited' => 'boolean'];
+    protected $fillable = ['project_id', 'sender_id', 'content', 'is_edited', 'is_pinned'];
+    protected $casts = ['is_edited' => 'boolean', 'is_pinned' => 'boolean'];
 
     public function project() { return $this->belongsTo(Project::class); }
     public function sender() { return $this->belongsTo(User::class, 'sender_id'); }

@@ -106,7 +106,14 @@ const staffComplaints = [
 type Msg = (typeof chat)[number];
 const say = (id: number, from: { id: number; first_name: string; last_name: string }, content: string, minsAgo: number): Msg => ({ id, content, sender_id: from.id, sender: from, created_at: new Date(Date.now() - minsAgo * 60_000).toISOString() });
 const threads: Record<string, Msg[]> = {
-  general: [say(101, people.ashe, 'Good morning everyone', 900), say(102, people.jamiu, 'Noted', 880), say(103, people.ige, 'Team meeting at 10am, please join on time.', 600), say(104, people.emma, 'Acknowledged', 590)],
+  general: [
+    say(101, people.ashe, 'Good morning everyone', 900),
+    say(102, people.jamiu, 'Noted', 880),
+    // Older messages were saved with "\n" written out.
+    Object.assign(say(103, people.ige, String.raw`Good afternoon, everyone\n\nThe Federal Government has declared Thursday and Friday public holidays.\n\nTasks will still be assigned, so please attend to them promptly.`, 600), { is_pinned: true }),
+    say(104, people.emma, String.raw`> Replying to Olubukola Ige:\n> Good afternoon, everyone\n\nAcknowledged, thank you ma.`, 590),
+    say(105, people.ashe, '↪ Forwarded\nClient call moved to 3pm.', 400),
+  ],
   u11: [say(201, people.ashe, 'Good morning', 300), say(202, people.ashe, 'I received a notification that I was assigned a task but nothing shows on my dashboard.', 299), say(203, people.ashe, 'Kindly ignore, I’ve gotten feedback.', 120)],
   u12: [say(301, people.jamiu, 'Creatives are ready for review', 2000)],
 };

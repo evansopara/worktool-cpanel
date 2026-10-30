@@ -113,6 +113,9 @@ export const messagesApi = {
   generalMessages: () => api.get('/messages/general'),
   sendGeneral: (content: string) => api.post('/messages/general', { content }),
   reactGeneral: (id: number, emoji: string) => api.post(`/messages/general/${id}/react`, { emoji }),
+  deleteDirect: (id: number) => api.delete(`/messages/direct/${id}`),
+  deleteGeneral: (id: number) => api.delete(`/messages/general/${id}`),
+  pin: (type: 'direct' | 'project' | 'general', id: number, pinned: boolean) => api.post(`/messages/${type}/${id}/pin`, { pinned }),
 };
 
 // Notifications

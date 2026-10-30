@@ -33,6 +33,9 @@ export const inboxApi = {
     const id = Number(c.slice(1));
     return c[0] === 'p' ? messagesApi.sendProjectMessage(id, content) : messagesApi.sendDirect(id, content);
   },
+  remove: (c: ConvKey, messageId: number) =>
+    c === 'general' ? messagesApi.deleteGeneral(messageId) : c[0] === 'p' ? messagesApi.deleteProjectMessage(messageId) : messagesApi.deleteDirect(messageId),
+  pin: (c: ConvKey, messageId: number, pinned: boolean) => messagesApi.pin(c === 'general' ? 'general' : c[0] === 'p' ? 'project' : 'direct', messageId, pinned),
 };
 
 export type Memo = {

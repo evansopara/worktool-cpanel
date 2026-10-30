@@ -127,6 +127,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/messages/general', [MessageController::class, 'generalMessages']);
     Route::post('/messages/general', [MessageController::class, 'sendGeneralMessage']);
     Route::post('/messages/general/{message}/react', [MessageController::class, 'reactToGeneralMessage']);
+    Route::delete('/messages/direct/{message}', [MessageController::class, 'deleteDirectMessage'])->whereNumber('message');
+    Route::delete('/messages/general/{message}', [MessageController::class, 'deleteGeneralMessage']);
+    Route::post('/messages/{type}/{id}/pin', [MessageController::class, 'pin'])->whereIn('type', ['direct', 'project', 'general'])->whereNumber('id');
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

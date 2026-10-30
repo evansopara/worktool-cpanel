@@ -13,6 +13,7 @@ export type ProjectFull = Project & {
 export type ChatMessage = {
   id: number;
   content: string;
+  is_pinned?: boolean;
   sender_id?: number;
   sender?: { id?: number; first_name: string; last_name: string };
   created_at: string;
