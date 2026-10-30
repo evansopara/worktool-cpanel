@@ -8,13 +8,27 @@ use App\Models\DirectMessage;
 use App\Models\GeneralChannelMessage;
 use App\Models\MessageReadReceipt;
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class MessageController extends Controller
 {
+    /** Project chats are for the people who can see the project. */
+    private function requireProject(Request $request, $projectId): Project
+    {
+        return Project::visibleTo($request->user())->findOrFail($projectId);
+    }
+
+    private static function isLead(User $user): bool
+    {
+        return in_array($user->role, ['operations_manager', 'team_lead'], true);
+    }
+
     // Project messages
     public function projectMessages(Request $request, $projectId)
     {
+        $this->requireProject($request, $projectId);
         $messages = ProjectMessage::with('sender')
             ->where('project_id', $projectId)
             ->orderBy('created_at', 'asc')
@@ -25,6 +39,7 @@ class MessageController extends Controller
 
     public function sendProjectMessage(Request $request, $projectId)
     {
+        $this->requireProject($request, $projectId);
         $data = $request->validate([
             'content' => 'required|string',
             'parent_id' => 'nullable|integer|exists:project_messages,id',
@@ -124,6 +139,62 @@ class MessageController extends Controller
         ]);
 
         return response()->json($message->load('sender'), 201);
+    }
+
+    /** Delete your own direct message (for both people). */
+    public function deleteDirectMessage(Request $request, DirectMessage $message)
+    {
+        if ($message->sender_id !== $request->user()->id) {
+            abort(403, 'You can only delete your own messages.');
+        }
+        $message->delete();
+        return response()->json(['message' => 'Message deleted.']);
+    }
+
+    /** Delete a general channel message: your own, or any as a Team Lead or Operations Manager. */
+    public function deleteGeneralMessage(Request $request, GeneralChannelMessage $message)
+    {
+        if ($message->sender_id !== $request->user()->id && !self::isLead($request->user())) {
+            abort(403, 'You can only delete your own messages.');
+        }
+        $message->delete();
+        return response()->json(['message' => 'Message deleted.']);
+    }
+
+    /**
+     * Pin or unpin a message (body: pinned true/false). Direct chats: either
+     * person. Project chats: anyone who can see the project. General channel:
+     * Team Leads and Operations Managers.
+     */
+    public function pin(Request $request, string $type, int $id)
+    {
+        $user = $request->user();
+        $pinned = $request->validate(['pinned' => 'required|boolean'])['pinned'];
+
+        $message = match ($type) {
+            'direct' => DirectMessage::findOrFail($id),
+            'project' => ProjectMessage::findOrFail($id),
+            'general' => GeneralChannelMessage::findOrFail($id),
+            default => abort(404),
+        };
+
+        $allowed = match ($type) {
+            'direct' => in_array($user->id, [(int) $message->sender_id, (int) $message->receiver_id], true),
+            'project' => Project::visibleTo($user)->whereKey($message->project_id)->exists(),
+            'general' => self::isLead($user),
+        };
+        if (!$allowed) {
+            abort(403, $type === 'general' ? 'Only Team Leads and Operations Managers can pin in the general channel.' : 'You can’t pin messages in this chat.');
+        }
+        // Code can go live before the SQL update adds the column.
+        if (!Schema::hasColumn($message->getTable(), 'is_pinned')) {
+            abort(422, 'Pinning isn’t switched on yet (database update pending).');
+        }
+
+        // Keep updated_at: it isn't an edit.
+        $message->timestamps = false;
+        $message->update(['is_pinned' => $pinned]);
+        return response()->json($message);
     }
 
     public function reactToGeneralMessage(Request $request, GeneralChannelMessage $message)
