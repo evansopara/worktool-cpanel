@@ -4,7 +4,6 @@
 
     use App\Models\Task;
     use App\Models\TaskEvent;
-    use App\Services\NotificationService;
     use Illuminate\Console\Command;
     use Illuminate\Support\Facades\DB;
     use Illuminate\Support\Facades\Schema;
@@ -13,7 +12,7 @@
         class CheckTaskDeadlines extends Command
         {
             protected $signature = 'tasks:check-deadlines';
-            protected $description = 'Send deadline reminders and estimate alerts, then mark overdue tasks as deadline_missed and stop their timers';
+            protected $description = 'Mark overdue tasks as deadline_missed and stop their timers, send the final deadline warning, and log estimates reached';
 
             public function handle()
             {
@@ -34,18 +33,19 @@
                     }
                 }
 
-                [$halfwayCount, $warningCount] = $this->attempt(fn () => $this->sendReminders());
-                [$warnedCount, $reachedCount] = $this->attempt(fn () => $this->checkEstimates());
+                [, $warningCount] = $this->attempt(fn () => $this->sendReminders());
+                [, $reachedCount] = $this->attempt(fn () => $this->checkEstimates());
 
-                $this->info("Sent {$halfwayCount} halfway and {$warningCount} final reminder(s), {$warnedCount} estimate warning(s) and {$reachedCount} estimate-reached alert(s). Marked {$count} task(s) as deadline_missed.");
+                $this->info("Marked {$count} task(s) as deadline_missed. Sent {$warningCount} deadline warning(s); {$reachedCount} task(s) reached their estimate.");
                 return 0;
             }
 
             /**
-             * Remind assignees once when a task is halfway between its start and
-             * its deadline, and once more shortly before the deadline.
+             * Warn the assignee once, shortly before the deadline: 10 minutes
+             * before, or 5 for tasks 10 minutes long or shorter. The halfway
+             * reminder was dropped (decided 2026-10-30).
              *
-             * @return array{int, int} halfway and final-warning counts
+             * @return array{int, int} halfway (always 0) and final-warning counts
              */
             private function sendReminders(): array
             {
@@ -57,90 +57,55 @@
                 }
 
                 $now = now();
-                $warnFrom = $now->copy()->addMinutes(Task::WARNING_MINUTES);
-
-                // Final warning first: a task already inside the warning window
-                // skips its halfway reminder.
                 $dueSoon = Task::whereNull('deadline_warning_notified_at')
                     ->whereNotNull('assignee_id')
                     ->whereNotIn('status', Task::CLOSED_STATUSES)
                     ->where('deadline', '>', $now)
-                    ->where('deadline', '<=', $warnFrom)
-                    ->get();
+                    ->where('deadline', '<=', $now->copy()->addMinutes(Task::WARNING_MINUTES))
+                    ->get()
+                    ->filter(fn (Task $task) => $task->deadline->lte($now->copy()->addMinutes($task->warningMinutes())));
 
                 foreach ($dueSoon as $task) {
                     $task->notifyDeadlineWarning();
-                    $task->update([
-                        'deadline_warning_notified_at' => $now,
-                        'halfway_notified_at' => $task->halfway_notified_at ?? $now,
-                    ]);
+                    $task->update(['deadline_warning_notified_at' => $now]);
                 }
 
-                $halfwayDue = Task::whereNull('halfway_notified_at')
-                    ->whereNotNull('assignee_id')
-                    ->whereNotIn('status', Task::CLOSED_STATUSES)
-                    ->where('deadline', '>', $warnFrom)
-                    ->get()
-                    ->filter(fn (Task $task) => $task->halfwayPoint()->lte($now));
-
-                foreach ($halfwayDue as $task) {
-                    $task->notifyHalfway();
-                    $task->update(['halfway_notified_at' => $now]);
-                }
-
-                return [$halfwayDue->count(), $dueSoon->count()];
+                return [0, $dueSoon->count()];
             }
 
             /**
-             * Running timers against the estimate (spec §7.8): at 80% tell the
-             * assignee; at 100% tell the managers and write it to the history.
-             * The timer keeps running either way.
+             * Running timers against the estimate (spec §7.8): reaching it is
+             * written to the task's history. No notifications (the 80% and
+             * "estimate reached" alerts were dropped, 2026-10-30). The timer
+             * keeps running.
              *
-             * @return array{int, int} warning and reached counts
+             * @return array{int, int} warning (always 0) and reached counts
              */
             private function checkEstimates(): array
             {
                 $now = now();
                 $running = Task::where('is_timer_running', true)
-                    ->where(fn ($q) => $q->whereNull('estimate_warned_at')->orWhereNull('estimate_reached_at'))
+                    ->whereNull('estimate_reached_at')
                     ->where(fn ($q) => $q->where('working_hours', '>', 0)->orWhere('working_minutes', '>', 0))
-                    ->with('project')
                     ->get();
 
-                $warned = 0;
                 $reached = 0;
                 foreach ($running as $task) {
-                    $budget = $task->estimateMinutes() * 60;
                     $logged = $task->loggedSeconds();
-
-                    if ($logged >= $budget && !$task->estimate_reached_at) {
-                        DB::transaction(function () use ($task, $now, $logged) {
-                            $task->update(['estimate_reached_at' => $now, 'estimate_warned_at' => $task->estimate_warned_at ?? $now]);
-                            TaskEvent::record($task, TaskEvent::ESTIMATE_REACHED, null, meta: [
-                                'estimate_minutes' => $task->estimateMinutes(),
-                                'logged_seconds' => $logged,
-                            ]);
-                        });
-                        $managers = collect([$task->project->manager_id ?? null, $task->assigned_by])
-                            ->filter()->unique()->reject(fn ($id) => $id === $task->assignee_id);
-                        foreach ($managers as $managerId) {
-                            NotificationService::send($managerId, 'task_estimate_reached', 'Estimate reached',
-                                "\"{$task->title}\" has used its {$this->label($task->estimateMinutes())} estimate and the timer is still running.",
-                                $task->id, 'task', email: false);
-                        }
-                        $reached++;
-                    } elseif ($logged >= $budget * 0.8 && !$task->estimate_warned_at) {
-                        $task->update(['estimate_warned_at' => $now]);
-                        if ($task->assignee_id) {
-                            NotificationService::send($task->assignee_id, 'task_estimate_warning', '80% of estimate used',
-                                "You've used 80% of the {$this->label($task->estimateMinutes())} estimate on \"{$task->title}\".",
-                                $task->id, 'task', email: false);
-                        }
-                        $warned++;
+                    if ($logged < $task->estimateMinutes() * 60) {
+                        continue;
                     }
+                    DB::transaction(function () use ($task, $now, $logged) {
+                        $task->update(['estimate_reached_at' => $now, 'estimate_warned_at' => $task->estimate_warned_at ?? $now]);
+                        TaskEvent::record($task, TaskEvent::ESTIMATE_REACHED, null, meta: [
+                            'estimate_minutes' => $task->estimateMinutes(),
+                            'logged_seconds' => $logged,
+                        ]);
+                    });
+                    $reached++;
                 }
 
-                return [$warned, $reached];
+                return [0, $reached];
             }
 
             /** @return array{int, int} */
@@ -152,13 +117,5 @@
                     report($e);
                     return [0, 0];
                 }
-            }
-
-            /** 150 → "2h 30m". */
-            private function label(int $minutes): string
-            {
-                $h = intdiv($minutes, 60);
-                $m = $minutes % 60;
-                return trim(($h ? "{$h}h " : '') . ($m ? "{$m}m" : ''));
             }
         }

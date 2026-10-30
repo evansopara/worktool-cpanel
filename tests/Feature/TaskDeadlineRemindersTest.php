@@ -69,27 +69,35 @@ class TaskDeadlineRemindersTest extends TestCase
         return Notification::where('user_id', $user->id)->orderBy('id')->pluck('title')->all();
     }
 
-    public function test_two_hour_task_gets_halfway_then_final_warning_once_each(): void
+    public function test_two_hour_task_gets_one_warning_ten_minutes_before(): void
     {
         $this->migrateReminderFlags();
         $this->makeTask('2026-10-20 09:00:00', '2026-10-20 11:00:00');
 
-        $this->runAt('2026-10-20 09:59:00');
-        $this->assertSame([], $this->titlesFor($this->assignee));
-
+        // No halfway reminder any more (2026-10-30).
         $this->runAt('2026-10-20 10:00:00');
-        $this->runAt('2026-10-20 10:01:00');
-        $this->assertSame(['Halfway to deadline'], $this->titlesFor($this->assignee));
-
         $this->runAt('2026-10-20 10:49:00');
-        $this->assertSame(['Halfway to deadline'], $this->titlesFor($this->assignee));
+        $this->assertSame([], $this->titlesFor($this->assignee));
 
         $this->runAt('2026-10-20 10:50:00');
         $this->runAt('2026-10-20 10:55:00');
-        $this->assertSame(['Halfway to deadline', 'Deadline in 10 minutes'], $this->titlesFor($this->assignee));
+        $this->assertSame(['Deadline in 10 minutes'], $this->titlesFor($this->assignee));
 
         $message = Notification::where('title', 'Deadline in 10 minutes')->value('message');
         $this->assertSame('"Website mockup" is due at 11:00 AM. Wrap up or submit it for review.', $message);
+    }
+
+    public function test_tasks_of_ten_minutes_or_less_are_warned_five_minutes_before(): void
+    {
+        $this->migrateReminderFlags();
+        $this->makeTask('2026-10-20 09:00:00', '2026-10-20 09:08:00');
+
+        $this->runAt('2026-10-20 09:02:00');
+        $this->assertSame([], $this->titlesFor($this->assignee));
+
+        $this->runAt('2026-10-20 09:03:00');
+        $this->runAt('2026-10-20 09:05:00');
+        $this->assertSame(['Deadline in 5 minutes'], $this->titlesFor($this->assignee));
     }
 
     public function test_reminders_are_assignee_only_and_not_emailed(): void
@@ -104,15 +112,14 @@ class TaskDeadlineRemindersTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_multi_day_task_reminder_includes_the_date(): void
+    public function test_multi_day_task_gets_no_halfway_reminder(): void
     {
         $this->migrateReminderFlags();
         $this->makeTask('2026-10-20 09:00:00', '2026-10-22 09:00:00');
 
         $this->runAt('2026-10-21 09:00:00');
 
-        $message = Notification::where('title', 'Halfway to deadline')->value('message');
-        $this->assertSame('"Website mockup" is halfway to its deadline (due Oct 22, 9:00 AM).', $message);
+        $this->assertSame([], $this->titlesFor($this->assignee));
     }
 
     public function test_short_task_gets_only_the_final_warning(): void
@@ -144,21 +151,15 @@ class TaskDeadlineRemindersTest extends TestCase
         $this->migrateReminderFlags();
         $task = $this->makeTask('2026-10-20 09:00:00', '2026-10-20 11:00:00');
 
-        $this->runAt('2026-10-20 10:00:00');
         $this->runAt('2026-10-20 10:50:00');
-        $this->assertCount(2, $this->titlesFor($this->assignee));
+        $this->assertCount(1, $this->titlesFor($this->assignee));
 
-        // Extension approved: deadline moves to 13:00, halfway is now 11:00.
+        // Extension approved: the deadline moves to 13:00.
         $task->refresh()->update(['deadline' => '2026-10-20 13:00:00']);
-        $this->assertNull($task->halfway_notified_at);
         $this->assertNull($task->deadline_warning_notified_at);
 
-        $this->runAt('2026-10-20 11:00:00');
         $this->runAt('2026-10-20 12:50:00');
-        $this->assertSame(
-            ['Halfway to deadline', 'Deadline in 10 minutes', 'Halfway to deadline', 'Deadline in 10 minutes'],
-            $this->titlesFor($this->assignee),
-        );
+        $this->assertSame(['Deadline in 10 minutes', 'Deadline in 10 minutes'], $this->titlesFor($this->assignee));
     }
 
     public function test_tasks_and_missed_deadlines_still_work_before_the_migration_runs(): void

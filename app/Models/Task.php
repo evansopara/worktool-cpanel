@@ -44,6 +44,9 @@ class Task extends Model
 
     /** How long before the deadline the final warning goes out. */
     public const WARNING_MINUTES = 10;
+    /** Tasks this short or shorter get the warning 5 minutes before instead. */
+    public const SHORT_TASK_MINUTES = 10;
+    public const SHORT_WARNING_MINUTES = 5;
 
     protected static function booted(): void
     {
@@ -271,29 +274,28 @@ class Task extends Model
         return "task-deadline-{$this->id}";
     }
 
-    /** Remind the assignee that the task is halfway to its deadline. */
-    public function notifyHalfway(): void
+    /**
+     * Minutes before the deadline to warn: 10, or 5 for a task whose whole
+     * window (start to deadline) is 10 minutes or less (decided 2026-10-30).
+     */
+    public function warningMinutes(): int
     {
-        NotificationService::send(
-            $this->assignee_id,
-            'task_deadline_reminder',
-            'Halfway to deadline',
-            "\"{$this->title}\" is halfway to its deadline (due {$this->deadlineLabel()}).",
-            $this->id,
-            'task',
-            pushTag: $this->deadlinePushTag(),
-            email: false,
-        );
+        $start = $this->start_date ?? $this->created_at;
+        if ($start && $this->deadline && $start->diffInMinutes($this->deadline) <= self::SHORT_TASK_MINUTES) {
+            return self::SHORT_WARNING_MINUTES;
+        }
+        return self::WARNING_MINUTES;
     }
 
     /** Warn the assignee shortly before the deadline. */
     public function notifyDeadlineWarning(): void
     {
-        TaskEvent::record($this, TaskEvent::DEADLINE_SOON, null, meta: ['minutes' => self::WARNING_MINUTES]);
+        $minutes = $this->warningMinutes();
+        TaskEvent::record($this, TaskEvent::DEADLINE_SOON, null, meta: ['minutes' => $minutes]);
         NotificationService::send(
             $this->assignee_id,
             'task_deadline_reminder',
-            'Deadline in ' . self::WARNING_MINUTES . ' minutes',
+            "Deadline in {$minutes} minutes",
             "\"{$this->title}\" is due at {$this->deadlineLabel()}. Wrap up or submit it for review.",
             $this->id,
             'task',
