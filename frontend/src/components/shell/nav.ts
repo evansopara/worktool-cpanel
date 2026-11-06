@@ -16,7 +16,7 @@ export type SectionKey =
   | 'calendar'
   | 'people'
   | 'clients'
-  | 'insights'
+  | 'performance'
   | 'library'
   | 'reviews'
   | 'admin'
@@ -81,7 +81,13 @@ const PAGES = {
     roles: ['operations_manager', 'team_lead', 'project_manager'],
     label: (u) => (u.role === 'team_lead' ? 'Assigned reviews' : 'Send for review'),
   },
-  kpi: { href: '/dashboard/kpi-report', roles: ['operations_manager', 'team_lead'], label: 'KPI report' },
+  // Performance replaces the KPI report (Performance page spec §1): managers
+  // see the whole team, staff and interns their own page.
+  performance: {
+    href: '/dashboard/performance',
+    roles: ALL,
+    label: (u) => (isManager(u) ? 'Performance' : 'My performance'),
+  },
   sops: { href: '/dashboard/sops', roles: ['operations_manager'], label: 'SOPs' },
   notes: { href: '/dashboard/notes', roles: ['operations_manager'], label: 'Notes' },
   admin: { href: '/dashboard/admin', roles: ['operations_manager', 'team_lead'], label: 'Users' },
@@ -150,7 +156,8 @@ const S = {
     sub: 'Links sent for review',
     pages: [PAGES.reviewLinks],
   },
-  insights: { key: 'insights', label: 'Insights', sub: 'KPI report', pages: [PAGES.kpi] },
+  performance: { key: 'performance', label: 'Performance', sub: 'KPIs, leaderboard, attendance', pages: [PAGES.performance] },
+  myPerformance: { key: 'performance', label: 'My performance', sub: 'Score, rank and attendance', pages: [PAGES.performance] },
   library: { key: 'library', label: 'Library', sub: 'SOPs and notes', pages: [PAGES.sops, PAGES.notes], hub: HUBS.library },
   admin: { key: 'admin', label: 'Admin', sub: 'Users and access', pages: [PAGES.admin] },
   settings: { key: 'settings', label: 'Settings', sub: 'Profile, password, appearance', pages: [PAGES.settings, PAGES.issues, PAGES.support] },
@@ -174,12 +181,12 @@ const S = {
 // 2026-10-27), but still only see the pages they could open before.
 const MANAGER_MENU: { label: string; sections: SectionDef[] }[] = [
   { label: '', sections: [S.home, S.projects, S.tasks, S.inbox, S.calendar] },
-  { label: 'Team and clients', sections: [S.people, S.clients, S.reviews, S.insights, S.library] },
+  { label: 'Team and clients', sections: [S.people, S.clients, S.performance, S.reviews, S.library] },
   { label: 'System', sections: [S.admin, S.settings] },
 ];
 
 const STAFF_MENU: { label: string; sections: SectionDef[] }[] = [
-  { label: '', sections: [S.home, S.projects, S.myTasks, S.inbox, S.calendar] },
+  { label: '', sections: [S.home, S.projects, S.myTasks, S.inbox, S.myPerformance, S.calendar] },
   { label: 'Requests', sections: [S.requests, S.penalties, S.support] },
   { label: 'Account', sections: [S.staffSettings] },
 ];
@@ -259,8 +266,8 @@ export const MORE_ORDER: SectionKey[] = [
   'reviews',
   'penalties',
   'support',
+  'performance',
   'calendar',
-  'insights',
   'library',
   'admin',
   'settings',

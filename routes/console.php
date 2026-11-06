@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('tasks:check-deadlines')->everyMinute();
 Schedule::command('bookings:notify')->everyMinute();
+Schedule::command('attendance:run')->everyMinute();
 Schedule::command('domains:check-expiry')->dailyAt('08:00');
 
 Artisan::command('inspire', function () {

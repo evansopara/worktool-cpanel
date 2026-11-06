@@ -40,6 +40,10 @@ class BadgeController extends Controller
                 : 0,
             // Staff: queries waiting for their acknowledgement.
             'penalties' => fn () => $user->isManager() ? 0 : StaffQuery::where('assigned_to', $user->id)->where('status', 'pending')->count(),
+            // Missed attendance checks waiting for review.
+            'performance' => fn () => $user->isManager() && \Illuminate\Support\Facades\Schema::hasTable('attendance_checks')
+                ? \App\Models\AttendanceCheck::where('status', 'missed')->whereNull('reviewed_at')->count()
+                : 0,
             'support' => fn () => $user->role === 'staff' && $user->specialization === 'technical_support'
                 ? TechnicalSupportRequest::where('status', 'open')->count()
                 : 0,

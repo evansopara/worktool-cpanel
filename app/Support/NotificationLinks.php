@@ -46,6 +46,8 @@ class NotificationLinks
                 return '/dashboard/messages?tab=memos';
             case 'booking':
                 return '/dashboard/bookings';
+            case 'attendance_check':
+                return $user->isManager() ? '/dashboard/performance?tab=attendance' : '/dashboard/performance';
             case 'technical_support_request':
                 return '/dashboard/support';
             case 'issue_report':

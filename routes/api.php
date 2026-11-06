@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\MemoController;
 use App\Http\Controllers\Api\SimpleController;
+use App\Http\Controllers\Api\PerformanceController;
 
 // Public routes
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -212,4 +213,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // KPI report
     Route::get('/departments', [\App\Http\Controllers\Api\KpiReportController::class, 'departments']);
     Route::get('/kpi-report/productivity', [\App\Http\Controllers\Api\KpiReportController::class, 'productivity']);
+
+    // Performance: KPIs, leaderboard and the daily attendance check
+    Route::get('/performance/overview', [PerformanceController::class, 'overview']);
+    Route::get('/performance/leaderboard', [PerformanceController::class, 'leaderboard']);
+    Route::get('/performance/attendance/today', [PerformanceController::class, 'attendanceToday']);
+    Route::get('/performance/attendance', [PerformanceController::class, 'attendance']);
+    Route::get('/performance/people/{user}', [PerformanceController::class, 'personView']);
+    Route::get('/attendance/me', [PerformanceController::class, 'myCheck']);
+    Route::post('/attendance/checks/{check}/respond', [PerformanceController::class, 'respond']);
+    Route::post('/attendance/checks/{check}/review', [PerformanceController::class, 'review']);
 });

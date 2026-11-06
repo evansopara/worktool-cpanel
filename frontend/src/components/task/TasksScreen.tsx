@@ -43,8 +43,9 @@ export function TasksScreen({ user }: { user: User }) {
   const params = useSearchParams();
   // ?view=ext opens the Extension requests tab (Home's "Needs you" links here).
   const [tab, setTab] = useState<Tab>(params.get('view') === 'ext' ? 'ext' : manager ? 'all' : 'active');
-  const [search, setSearch] = useState('');
-  const [q, setQ] = useState('');
+  // ?q= pre-fills the search (Performance's "Victor's tasks" link).
+  const [search, setSearch] = useState(params.get('q') ?? '');
+  const [q, setQ] = useState(params.get('q') ?? '');
   const [range, setRange] = useState<DateRangeValue>({ from: '', to: '' });
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);

@@ -12,7 +12,8 @@ use Illuminate\Http\Request;
 
 class KpiReportController extends Controller
 {
-    private const ALLOWED_ROLES = ['operations_manager', 'team_lead'];
+    // Every manager role sees the KPI tab of the Performance page.
+    private const ALLOWED_ROLES = User::MANAGER_ROLES;
 
     private const EMPLOYEE_ROLES = [
         'operations_manager', 'team_lead', 'project_manager',
@@ -245,6 +246,24 @@ class KpiReportController extends Controller
                 'tasks_in_progress' => $tasksInProgress,
                 'productivity_score' => $productivityScore,
             ];
+        }
+
+        // Export Excel on the Performance page's KPI tab: one row per day, then each task.
+        if ($request->query('format') === 'xlsx' && $employeeId) {
+            $rows = [];
+            foreach (array_reverse($response['daily_details']) as $d) {
+                $rows[] = [$d['date'], round($d['total_span_seconds'] / 3600, 2), ucfirst($d['status']), implode(', ', $d['tasks']->all()), '', ''];
+            }
+            $rows[] = ['', '', '', '', '', ''];
+            foreach ($response['task_breakdown'] as $t) {
+                $rows[] = ['Task', '', str_replace('_', ' ', ucfirst((string) $t['status'])), $t['title'], $t['estimated_minutes'], $t['actual_minutes']];
+            }
+            $name = 'kpi-' . preg_replace('/[^a-z0-9]+/i', '-', $response['staff_summary']['name']) . "-{$response['from']}-to-{$response['to']}";
+            return response()->download(
+                \App\Support\XlsxWriter::write(['Date', 'Hours', 'Day', 'Tasks', 'Estimated min', 'Logged min'], $rows, 'KPI'),
+                "{$name}.xlsx",
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            )->deleteFileAfterSend();
         }
 
         return response()->json($response);

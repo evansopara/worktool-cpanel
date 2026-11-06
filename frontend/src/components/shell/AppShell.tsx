@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User } from '@/types';
+import { AttendancePrompt } from '@/components/performance/AttendancePrompt';
+import { CHECKED_ROLES } from '@/lib/performance';
 import { AppSidebar } from './AppSidebar';
 import { MobileDock, MORE_HREF } from './MobileDock';
 import { SectionTabs } from './SectionTabs';
@@ -48,6 +50,8 @@ export function AppShell({
         {children}
       </main>
       <MobileDock groups={groups} active={dockActive} badges={{ ...badges, more: moreBadge }} />
+      {/* The daily "Are you there?" check, wherever the person is in the app. */}
+      {!previewPath && CHECKED_ROLES.includes(user.role) && <AttendancePrompt firstName={user.first_name || user.username} />}
     </div>
   );
 }
