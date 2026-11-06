@@ -11,4 +11,5 @@ export { Pagination, PER_PAGE } from './Pagination';
 export { ExportMenu, type ExportFormat } from './ExportMenu';
 export { ScheduleBoxes, ScheduleInline } from './ScheduleBoxes';
 export { Drawer, DrawerClose } from './Drawer';
+export { Linkify } from './Linkify';
 export { Sheet, SheetEyebrow, SheetTitle, SheetDescription, SheetActions } from './Sheet';

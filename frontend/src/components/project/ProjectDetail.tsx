@@ -7,7 +7,7 @@ import { ArrowLeft, Check, ChevronRight, ExternalLink, MessageCircle, Paperclip,
 import { toast } from 'sonner';
 import type { User } from '@/types';
 import { cn } from '@/lib/utils';
-import { Pagination, Tabs } from '@/components/wc';
+import { Linkify, Pagination, Tabs } from '@/components/wc';
 import { errorText, taskApi } from '@/lib/tasks';
 import { categoryLabel, domainState, durationDays, fmtDay, fmtRange, projectApi, projectStatus, type ProjectFull } from '@/lib/projects';
 import { ManagerTaskCard, ManagerTaskTable, StaffTaskCard, StaffTaskTable } from '@/components/task/TaskRows';
@@ -124,7 +124,7 @@ export function ProjectDetail({
             </h1>
             <p className="m-0 text-sm text-on-dark lg:text-base">
               <span className="lg:hidden">{categoryLabel(p)}</span>
-              <span className="hidden lg:inline">{p.description || `${categoryLabel(p)} project`}</span>
+              <span className="hidden lg:inline">{p.description ? <Linkify text={p.description} /> : `${categoryLabel(p)} project`}</span>
             </p>
             {manager && (
               <div className="hidden flex-wrap gap-2.5 lg:flex">
@@ -175,7 +175,7 @@ export function ProjectDetail({
           <PlanCard project={p} manager={manager} />
           {p.description && (
             <p className="m-0 px-1 text-sm text-ink-2 lg:hidden">
-              <strong className="text-ink">Description:</strong> {p.description}
+              <strong className="text-ink">Description:</strong> <Linkify text={p.description} className="text-review" />
             </p>
           )}
 
@@ -284,7 +284,7 @@ function PlanCard({ project: p, manager }: { project: ProjectFull; manager: bool
                 Project plan{steps.length ? ` · ${doneCount} of ${steps.length}` : ''}
               </p>
               <h2 className="m-0 font-display text-[21px] leading-[1.15] font-bold lg:text-[28px] lg:tracking-[-0.02em]">{plan.title}</h2>
-              {plan.description && <p className="m-0 text-[13.5px] text-ink-2 lg:text-[15px]">{plan.description}</p>}
+              {plan.description && <p className="m-0 text-[13.5px] text-ink-2 lg:text-[15px]"><Linkify text={plan.description} className="text-review" /></p>}
             </div>
             <ol className="m-0 flex list-none flex-col p-0">
               {steps.map((d, i) => {

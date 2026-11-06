@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Pause, Pencil, Play, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Avatar, Drawer, DrawerClose, StatusPill, Tabs } from '@/components/wc';
+import { Avatar, Drawer, DrawerClose, Linkify, StatusPill, Tabs } from '@/components/wc';
 import { DEADLINE_PASSED, deadlinePassed, errorText, fmtMinutes, fmtWhen, personName, statusInfo, taskApi, type HistoryFilter, type TaskDetail } from '@/lib/tasks';
 import { LiveClock } from './LiveClock';
 import { HistoryFilters, HistorySummaryTiles, HistoryTimeline } from './TaskHistory';
@@ -215,7 +215,7 @@ function TaskPanel({
               Instructions
             </span>
             {t.has_instructions ? (
-              <p className="m-0 text-[15px] leading-[1.6] whitespace-pre-wrap">{t.description}</p>
+              <p className="m-0 text-[15px] leading-[1.6] whitespace-pre-wrap"><Linkify text={t.description} className="text-review" /></p>
             ) : (
               <p className="m-0 text-[14.5px] text-ink-2">No instructions were added to this task.</p>
             )}
