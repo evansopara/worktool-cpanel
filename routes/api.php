@@ -222,5 +222,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/performance/people/{user}', [PerformanceController::class, 'personView']);
     Route::get('/attendance/me', [PerformanceController::class, 'myCheck']);
     Route::post('/attendance/checks/{check}/respond', [PerformanceController::class, 'respond']);
-    Route::post('/attendance/checks/{check}/review', [PerformanceController::class, 'review']);
 });

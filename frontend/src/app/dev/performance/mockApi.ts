@@ -41,7 +41,7 @@ function staffRows(): BoardRow[] {
         on_time: { value: onTime, score: onTime, weight: 40, ok: Math.round((tasks * onTime) / 100), total: tasks },
         first_time: { value: first, score: first, weight: 25, sent_back: first < 90 ? 1 : 0, total: tasks },
         estimate: { value: est, score: 100 - Math.abs(est - 100), weight: 15 },
-        attendance: { value: att, score: att, weight: 20, late: att === 80 ? 1 : 0, missed: att < 80 ? 1 : 0, total: 5 },
+        attendance: { value: att, score: att, weight: 20, late: 0, missed: att < 100 ? 1 : 0, total: 5 },
       },
     };
   });
@@ -84,7 +84,7 @@ const WEEK: Record<number, CheckStatus[]> = {
   11: ['answered', 'answered', 'answered', 'answered', 'answered'],
   12: ['answered', 'answered', 'answered', 'answered', 'answered'],
   13: ['answered', 'answered', 'answered', 'answered', 'answered'],
-  10: ['answered', 'answered', 'late', 'answered', 'answered'],
+  10: ['answered', 'answered', 'missed', 'answered', 'answered'],
   14: ['answered', 'answered', 'answered', 'answered', 'answered'],
   15: ['pending', 'answered', 'missed', 'answered', 'answered'],
   19: ['pending', 'answered', 'missed', 'answered', 'missed'],
@@ -101,8 +101,6 @@ function personDays(id: number) {
   }));
 }
 
-let reviewed = false;
-
 export function performanceMock(viewerId: number): AxiosAdapter {
   return async (config) => {
     await new Promise((r) => setTimeout(r, 120));
@@ -118,7 +116,6 @@ export function performanceMock(viewerId: number): AxiosAdapter {
       working_day: true,
       sent_at: sent.toISOString(),
       answer_by: new Date(sent.getTime() + 30 * 60_000).toISOString(),
-      late_until: new Date(sent.getTime() + 60 * 60_000).toISOString(),
       expected: 10,
       answered: 6,
       waiting: 4,
@@ -130,15 +127,11 @@ export function performanceMock(viewerId: number): AxiosAdapter {
         { id: 21, user: person(21), status: 'skipped', responded_at: null },
       ],
     };
-    const flags = reviewed
-      ? []
-      : [{ id: 99, user: person(19), date: '2026-10-30', sent_at: iso('2026-10-30', '13:48'), late_until: iso('2026-10-30', '13:48', 60), misses_this_week: 2 }];
-
-    if (url === '/badges') return ok(config, { inbox: 2, people: 3, clients: 2, performance: flags.length });
+    if (url === '/badges') return ok(config, { inbox: 2, people: 3, clients: 2, });
     if (url === '/notifications/unread-count') return ok(config, { count: 2 });
     if (url === '/performance/overview') {
       const rows = staffRows();
-      return ok(config, { ...range, on_time: { pct: 84, ok: 74, total: 88 }, today, missed_unreviewed: flags.length, top: rows.filter((r) => r.rank && r.rank <= 3), people: rows });
+      return ok(config, { ...range, on_time: { pct: 84, ok: 74, total: 88 }, today, missed_checks: 3, top: rows.filter((r) => r.rank && r.rank <= 3), people: rows });
     }
     if (url === '/performance/leaderboard') {
       const board = p.board === 'pm' ? 'pm' : 'staff';
@@ -164,11 +157,10 @@ export function performanceMock(viewerId: number): AxiosAdapter {
           const counted = list.filter((x) => x === 'answered' || x === 'late' || x === 'missed');
           return {
             user: person(Number(k)),
-            cells: Object.fromEntries(DAYS.map((d, i) => [d, { status: list[i], responded_at: null }])),
+            cells: Object.fromEntries(DAYS.map((d, i) => [d, { status: list[i], responded_at: list[i] === 'answered' || list[i] === 'late' ? iso(d, SENT[i], list[i] === 'late' ? 46 : 2 + ((Number(k) + i) % 9)) : null }])),
             rate: counted.length ? Math.round((counted.filter((x) => x === 'answered').length / counted.length) * 100) : null,
           };
         }),
-        flags,
       });
     }
     let m: RegExpMatchArray | null;
@@ -198,12 +190,11 @@ export function performanceMock(viewerId: number): AxiosAdapter {
       return ok(config, {
         check:
           viewerId === 10
-            ? { id: 5, status: 'pending', sent_at: today.sent_at, answer_by: today.answer_by, late_until: today.late_until, responded_at: null, server_now: now.toISOString() }
+            ? { id: 5, status: 'pending', sent_at: today.sent_at, answer_by: today.answer_by, responded_at: null, server_now: now.toISOString() }
             : null,
       });
     }
-    if ((m = url.match(/^\/attendance\/checks\/(\d+)\/(respond|review)$/))) {
-      if (m[2] === 'review') reviewed = true;
+    if ((m = url.match(/^\/attendance\/checks\/(\d+)\/respond$/))) {
       return ok(config, { status: 'answered', responded_at: new Date().toISOString() });
     }
     if (url === '/departments') return ok(config, ['Design', 'Development', 'Media Buying']);

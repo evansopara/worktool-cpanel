@@ -63,7 +63,9 @@ class PerformanceController extends Controller
         return response()->json($this->range($s) + [
             'on_time' => ['pct' => $total ? (int) round($ok / $total * 100) : null, 'ok' => $ok, 'total' => $total],
             'today' => $this->todaySummary(),
-            'missed_unreviewed' => $this->unreviewed()->count(),
+            'missed_checks' => AttendanceCheck::where('status', AttendanceCheck::MISSED)
+                ->whereBetween('date', [$s->from()->toDateString(), $s->to()->toDateString()])
+                ->count(),
             'top' => array_values(array_filter($rows, fn ($r) => $r['rank'] !== null && $r['rank'] <= 3)),
             'people' => $rows,
         ]);
@@ -134,7 +136,6 @@ class PerformanceController extends Controller
         $out += [
             'sent_at' => $day->send_at->toIso8601String(),
             'answer_by' => $day->send_at->copy()->addMinutes(Attendance::ON_TIME_MINUTES)->toIso8601String(),
-            'late_until' => $day->send_at->copy()->addMinutes(Attendance::LATE_MINUTES)->toIso8601String(),
             'expected' => $checks->where('status', '!=', AttendanceCheck::SKIPPED)->count(),
             'answered' => $answered->count(),
             'waiting' => $checks->where('status', AttendanceCheck::PENDING)->count(),
@@ -185,7 +186,6 @@ class PerformanceController extends Controller
                     'rate' => $this->rate($mine),
                 ];
             }),
-            'flags' => $this->flags(),
         ]);
     }
 
@@ -193,43 +193,6 @@ class PerformanceController extends Controller
     {
         $counted = $checks->whereIn('status', [AttendanceCheck::ANSWERED, AttendanceCheck::LATE, AttendanceCheck::MISSED]);
         return $counted->count() ? (int) round($counted->where('status', AttendanceCheck::ANSWERED)->count() / $counted->count() * 100) : null;
-    }
-
-    private function unreviewed()
-    {
-        return AttendanceCheck::where('status', AttendanceCheck::MISSED)->whereNull('reviewed_at');
-    }
-
-    private function flags(): Collection
-    {
-        $missed = $this->unreviewed()->with('user:id,first_name,last_name,username,role')->orderByDesc('date')->limit(50)->get();
-        $sendTimes = AttendanceDay::whereIn('date', $missed->pluck('date'))->pluck('send_at', 'date');
-        return $missed->map(function (AttendanceCheck $c) use ($sendTimes) {
-            $date = Carbon::parse($c->date);
-            $weekMisses = AttendanceCheck::where('user_id', $c->user_id)
-                ->where('status', AttendanceCheck::MISSED)
-                ->whereBetween('date', [$date->copy()->startOfWeek(Carbon::MONDAY)->toDateString(), $date->toDateString()])
-                ->count();
-            $sent = isset($sendTimes[$c->date]) ? Carbon::parse($sendTimes[$c->date]) : null;
-            return [
-                'id' => $c->id,
-                'user' => $this->person($c->user),
-                'date' => $c->date,
-                'sent_at' => $sent?->toIso8601String(),
-                'late_until' => $sent?->copy()->addMinutes(Attendance::LATE_MINUTES)->toIso8601String(),
-                'misses_this_week' => $weekMisses,
-            ];
-        });
-    }
-
-    /** Manager marks a missed check reviewed. */
-    public function review(Request $request, AttendanceCheck $check)
-    {
-        $user = $request->user();
-        $this->requireManager($user);
-        abort_unless($check->status === AttendanceCheck::MISSED, 422, 'Only missed checks can be reviewed.');
-        $check->update(['reviewed_by' => $user->id, 'reviewed_at' => now()]);
-        return response()->json(['id' => $check->id, 'reviewed_at' => $check->reviewed_at->toIso8601String()]);
     }
 
     /** The signed-in person's check for today, for the in-app prompt. */
@@ -246,7 +209,6 @@ class PerformanceController extends Controller
             'status' => $check->status,
             'sent_at' => $day->send_at->toIso8601String(),
             'answer_by' => $day->send_at->copy()->addMinutes(Attendance::ON_TIME_MINUTES)->toIso8601String(),
-            'late_until' => $day->send_at->copy()->addMinutes(Attendance::LATE_MINUTES)->toIso8601String(),
             'responded_at' => $check->responded_at?->toIso8601String(),
             'server_now' => now()->toIso8601String(),
         ]]);

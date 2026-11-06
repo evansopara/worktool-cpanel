@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  *
  * One time per working day (Mon–Fri), the same for everyone, picked at random
  * between 10:00 AM and 4:30 PM outside 1–2 PM. Answer within 30 minutes =
- * answered, within 60 = late, after that = missed. People on approved leave
+ * answered, after that = missed. People on approved leave
  * are skipped. Everyone except Team Leads is checked (decided 2026-11-06).
  */
 class Attendance
@@ -23,7 +23,6 @@ class Attendance
     public const CHECKED_ROLES = ['operations_manager', 'project_manager', 'customer_support_officer', 'staff', 'intern'];
 
     public const ON_TIME_MINUTES = 30;
-    public const LATE_MINUTES = 60;
 
     private const WINDOW_START = '10:00';
     private const WINDOW_END = '16:30';
@@ -132,54 +131,34 @@ class Attendance
         }
     }
 
-    /** After the late window: unanswered checks become missed and managers are told. */
+    /**
+     * After the 30-minute window: unanswered checks become missed. Nobody is
+     * notified — managers see misses on the Attendance tab.
+     */
     public static function settle(Carbon $now): void
     {
         $days = AttendanceDay::whereNotNull('fired_at')
-            ->where('send_at', '<=', $now->copy()->subMinutes(self::LATE_MINUTES))
+            ->where('send_at', '<=', $now->copy()->subMinutes(self::ON_TIME_MINUTES))
             ->pluck('date')
             ->map(fn ($d) => Carbon::parse($d)->toDateString());
         if ($days->isEmpty()) {
             return;
         }
 
-        $checks = AttendanceCheck::with('user')
-            ->where('status', AttendanceCheck::PENDING)
+        AttendanceCheck::where('status', AttendanceCheck::PENDING)
             ->whereIn('date', $days)
-            ->get();
-        if ($checks->isEmpty()) {
-            return;
-        }
-
-        $managers = User::whereIn('role', ['operations_manager', 'team_lead'])->where('is_active', true)->pluck('id');
-        foreach ($checks as $check) {
-            if (AttendanceCheck::whereKey($check->id)->where('status', AttendanceCheck::PENDING)->update(['status' => AttendanceCheck::MISSED]) === 0) {
-                continue;
-            }
-            $name = $check->user?->fullName() ?? 'Someone';
-            $dayName = Carbon::parse($check->date)->format('l');
-            foreach ($managers as $managerId) {
-                if ($managerId === $check->user_id) {
-                    continue;
-                }
-                NotificationService::send($managerId, 'attendance_missed', 'Missed attendance check',
-                    "{$name} missed {$dayName}'s attendance check.", $check->id, 'attendance_check', email: false);
-            }
-        }
+            ->update(['status' => AttendanceCheck::MISSED]);
     }
 
     /**
      * Status for an answer at $at to a check sent at $sentAt: answered up to
-     * 30 minutes, late up to 60, null after that (too late to answer).
+     * 30 minutes, null after that (too late to answer).
      */
     public static function statusFor(Carbon $sentAt, Carbon $at): ?string
     {
         $seconds = $sentAt->diffInSeconds($at, false);
         if ($seconds <= self::ON_TIME_MINUTES * 60) {
             return AttendanceCheck::ANSWERED;
-        }
-        if ($seconds <= self::LATE_MINUTES * 60) {
-            return AttendanceCheck::LATE;
         }
         return null;
     }

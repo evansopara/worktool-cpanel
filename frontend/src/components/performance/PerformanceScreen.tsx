@@ -3,7 +3,6 @@
 import type { User } from '@/types';
 import { PageBody } from '@/components/shell/PageHeader';
 import { isManager } from '@/components/shell/nav';
-import { useBadges } from '@/lib/badges';
 import { rangeLabel } from '@/lib/performance';
 import { AttendanceTab } from './AttendanceTab';
 import { KpiTab } from './KpiTab';
@@ -22,7 +21,6 @@ import { usePerfUrl } from './usePerfUrl';
 export function PerformanceScreen({ user }: { user: User }) {
   const url = usePerfUrl();
   const manager = isManager(user);
-  const badges = useBadges();
 
   if (url.person && (manager || url.person === user.id)) {
     return (
@@ -48,7 +46,6 @@ export function PerformanceScreen({ user }: { user: User }) {
       <PerfHeader
         url={url}
         manager
-        missedBadge={badges.performance}
         mobileSub={url.tab === null ? rangeLabel(url.range, true) : undefined}
       />
       {tab === 'overview' && <OverviewTab url={url} />}

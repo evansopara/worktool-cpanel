@@ -126,14 +126,10 @@ class PerformanceTest extends TestCase
         Sanctum::actingAs($this->staff);
         $this->postJson("/api/attendance/checks/{$this->check($this->staff)->id}/respond")->assertOk()->assertJson(['status' => 'answered']);
 
-        Carbon::setTestNow(Carbon::parse('2026-10-26 14:43:00')); // 31 min
+        Carbon::setTestNow(Carbon::parse('2026-10-26 14:43:00')); // 31 min: too late
         Sanctum::actingAs($this->intern);
-        $this->postJson("/api/attendance/checks/{$this->check($this->intern)->id}/respond")->assertOk()->assertJson(['status' => 'late']);
-
-        Carbon::setTestNow(Carbon::parse('2026-10-26 15:13:00')); // 61 min
-        Sanctum::actingAs($this->ops);
-        $this->postJson("/api/attendance/checks/{$this->check($this->ops)->id}/respond")->assertStatus(422);
-        $this->assertSame(AttendanceCheck::MISSED, $this->check($this->ops)->status);
+        $this->postJson("/api/attendance/checks/{$this->check($this->intern)->id}/respond")->assertStatus(422);
+        $this->assertSame(AttendanceCheck::MISSED, $this->check($this->intern)->status);
     }
 
     public function test_cannot_answer_someone_elses_check(): void
@@ -143,25 +139,20 @@ class PerformanceTest extends TestCase
         $this->postJson("/api/attendance/checks/{$this->check($this->staff)->id}/respond")->assertForbidden();
     }
 
-    public function test_unanswered_checks_become_missed_and_are_flagged_until_reviewed(): void
+    public function test_unanswered_checks_become_missed_without_notifying_anyone(): void
     {
         $this->fireAt();
-        Attendance::tick(Carbon::parse('2026-10-26 15:11'));
+        Attendance::tick(Carbon::parse('2026-10-26 14:41'));
         $this->assertSame(AttendanceCheck::PENDING, $this->check($this->staff)->status);
-        Carbon::setTestNow(Carbon::parse('2026-10-26 15:12'));
+        Carbon::setTestNow(Carbon::parse('2026-10-26 14:42'));
         Attendance::tick();
         $this->assertSame(AttendanceCheck::MISSED, $this->check($this->staff)->status);
-        $this->assertTrue(Notification::where('user_id', $this->lead->id)->where('type', 'attendance_missed')->exists());
+        $this->assertFalse(Notification::where('type', 'attendance_missed')->exists());
 
         Sanctum::actingAs($this->lead);
-        $flags = $this->getJson('/api/performance/attendance?from=2026-10-26&to=2026-11-01')->assertOk()->json('flags');
-        $this->assertContains($this->staff->id, array_column(array_column($flags, 'user'), 'id'));
-        $this->assertGreaterThan(0, $this->getJson('/api/badges')->json('performance'));
-
-        $this->postJson("/api/attendance/checks/{$this->check($this->staff)->id}/review")->assertOk();
-        $this->assertSame($this->lead->id, $this->check($this->staff)->reviewed_by);
-        $flags = $this->getJson('/api/performance/attendance?from=2026-10-26&to=2026-11-01')->json('flags');
-        $this->assertNotContains($this->staff->id, array_column(array_column($flags, 'user'), 'id'));
+        $people = collect($this->getJson('/api/performance/attendance?from=2026-10-26&to=2026-11-01')->assertOk()->json('people'));
+        $this->assertSame(AttendanceCheck::MISSED, $people->firstWhere('user.id', $this->staff->id)['cells']['2026-10-26']['status']);
+        $this->assertSame(AttendanceCheck::where('status', AttendanceCheck::MISSED)->count(), $this->getJson('/api/performance/overview?from=2026-10-26&to=2026-11-01')->json('missed_checks'));
     }
 
     /** A closed task due today at 4 PM, submitted at $submitAt (null = never). */

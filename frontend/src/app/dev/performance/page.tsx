@@ -42,7 +42,7 @@ function Preview() {
   useEffect(() => () => void (api.defaults.adapter = original), [original]);
 
   return (
-    <AppShell user={user} unread={2} badges={{ performance: staff ? 0 : 1, people: 3, clients: 2 }} onSignOut={() => {}} previewPath="/dashboard/performance">
+    <AppShell user={user} unread={2} badges={{ people: 3, clients: 2 }} onSignOut={() => {}} previewPath="/dashboard/performance">
       <PerformanceScreen user={user} />
       {staff && params.get('prompt') === '1' && <AttendancePrompt firstName="Victor" />}
     </AppShell>

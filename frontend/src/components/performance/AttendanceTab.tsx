@@ -1,21 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
-import { Check, Download, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, Button, Tabs } from '@/components/wc';
-import { errorText, fmtTime } from '@/lib/tasks';
-import { performanceApi, roleName, weekday, type AttendanceWeek, type CheckStatus, type Flag, type TodaySummary } from '@/lib/performance';
+import { Avatar, Tabs } from '@/components/wc';
+import { fmtTime } from '@/lib/tasks';
+import { performanceApi, roleName, weekday, type AttendanceWeek, type CheckStatus, type TodaySummary } from '@/lib/performance';
 import { card, cardTitle, CheckDot, CheckPill, ErrorNote, Loading, mmss, PersonCell, th, useSecondsLeft } from './parts';
 import type { PerfUrl } from './usePerfUrl';
 
 const RULE =
-  'One random time per day, the same for everyone (meetings included), picked between 10:00 AM and 4:30 PM. Answer within 30 minutes; up to 60 counts as late. People on leave are skipped.';
+  'One random time per day, the same for everyone (meetings included), picked between 10:00 AM and 4:30 PM. Answer within 30 minutes or it counts as missed. People on leave are skipped.';
 
-/** Attendance (Attendance / MAttendance): live check, flags, today, this week. */
+/** Attendance (Attendance / MAttendance): live check, today, this week. */
 export function AttendanceTab({ url }: { url: PerfUrl }) {
   const [view, setView] = useState<'today' | 'week'>('today');
   const today = useQuery({ queryKey: ['performance', 'attendance', 'today'], queryFn: performanceApi.today, refetchInterval: 30_000 });
@@ -33,7 +32,6 @@ export function AttendanceTab({ url }: { url: PerfUrl }) {
       {/* Desktop */}
       <div className="hidden flex-col gap-5 lg:flex">
         <LiveCard t={today.data} />
-        <FlagsCard flags={week.data.flags} />
         {today.data.rows && <TodayTable t={today.data} />}
         <WeekGrid w={week.data} />
       </div>
@@ -50,36 +48,10 @@ export function AttendanceTab({ url }: { url: PerfUrl }) {
             { value: 'week', label: 'This week' },
           ]}
         />
-        {view === 'today' ? <MobileToday t={today.data} flags={week.data.flags} /> : <MobileWeek w={week.data} />}
+        {view === 'today' ? <MobileToday t={today.data} /> : <MobileWeek w={week.data} />}
       </div>
     </>
   );
-}
-
-function useReview() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => performanceApi.review(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['performance'] });
-      qc.invalidateQueries({ queryKey: ['badges'] });
-      toast.success('Marked reviewed');
-    },
-    onError: (e) => toast.error(errorText(e, 'Couldn’t mark it reviewed.')),
-  });
-}
-
-const dayName = (date: string) => format(parseISO(date), 'EEEE');
-
-function flagLine(f: Flag) {
-  const nth = f.misses_this_week === 2 ? '2nd' : f.misses_this_week === 3 ? '3rd' : `${f.misses_this_week}th`;
-  return [
-    f.sent_at ? `Sent to everyone at ${fmtTime(f.sent_at)}` : null,
-    f.late_until ? `no answer by ${fmtTime(f.late_until)}` : null,
-    f.misses_this_week > 1 ? `${nth} miss this week` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
 }
 
 function LiveCard({ t }: { t: TodaySummary }) {
@@ -111,7 +83,7 @@ function LiveCard({ t }: { t: TodaySummary }) {
           </span>
           <p className="m-0 font-display text-[26px] font-bold tracking-[-0.02em]">Went out to everyone at {fmtTime(t.sent_at)}</p>
           <p className="m-0 text-[13px] text-on-dark">
-            Same time for everyone · answer by {fmtTime(t.answer_by)} · late until {fmtTime(t.late_until)}
+            Same time for everyone · answer by {fmtTime(t.answer_by)}
           </p>
           <div className="mt-1 h-1.5 w-full max-w-[280px] overflow-hidden rounded-full bg-dark-line">
             <div className="h-full rounded-full bg-yellow" style={{ width: `${((total - left) / total) * 100}%` }} />
@@ -133,53 +105,6 @@ function LiveCard({ t }: { t: TodaySummary }) {
           </div>
         ))}
       </dl>
-    </section>
-  );
-}
-
-function exportFlags(flags: Flag[]) {
-  const rows = [['Person', 'Role', 'Date', 'Sent at', 'Misses that week'], ...flags.map((f) => [f.user.name, roleName(f.user.role), f.date, f.sent_at ? fmtTime(f.sent_at) : '', String(f.misses_this_week)])];
-  const csv = '﻿' + rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `missed-checks-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function FlagsCard({ flags }: { flags: Flag[] }) {
-  const review = useReview();
-  return (
-    <section aria-labelledby="h-flags" className={cn(card, 'flex flex-col gap-3')}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 id="h-flags" className={cn(cardTitle, 'flex items-center gap-2.5')}>
-          Flagged for review
-          {flags.length > 0 && <span className="flex size-6 items-center justify-center rounded-full bg-yellow text-xs font-bold">{flags.length}</span>}
-        </h2>
-        <Button variant="secondary" size="md" onClick={() => exportFlags(flags)} disabled={!flags.length}>
-          <Download aria-hidden="true" />
-          Export
-        </Button>
-      </div>
-      {flags.length === 0 ? (
-        <p className="m-0 border-t border-line pt-3 text-sm text-ink-3">No missed checks waiting for review.</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col p-0">
-          {flags.map((f) => (
-            <li key={f.id} className="flex items-center justify-between gap-4 border-t border-line py-3">
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[14.5px] font-bold">
-                  {f.user.name} · missed {dayName(f.date)}’s check
-                </span>
-                <span className="text-[12.5px] text-ink-3">{flagLine(f)}</span>
-              </span>
-              <Button size="md" onClick={() => review.mutate(f.id)} disabled={review.isPending && review.variables === f.id}>
-                Mark reviewed
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }
@@ -232,7 +157,8 @@ function WeekGrid({ w }: { w: AttendanceWeek }) {
                 <th className={th}>Person</th>
                 {w.days.map((d) => (
                   <th key={d.date} className={th}>
-                    {weekday(d.date)} {fmtTime(d.sent_at)}
+                    {weekday(d.date)}
+                    <span className="block font-normal normal-case">sent {fmtTime(d.sent_at)}</span>
                   </th>
                 ))}
                 <th className={cn(th, 'text-right')}>Rate</th>
@@ -244,7 +170,14 @@ function WeekGrid({ w }: { w: AttendanceWeek }) {
                   <td className="px-2 py-2.5 text-[13.5px] font-bold whitespace-nowrap">{p.user.name}</td>
                   {w.days.map((d) => (
                     <td key={d.date} className="px-2 py-2.5">
-                      {p.cells[d.date] ? <CheckDot status={p.cells[d.date].status} /> : <span className="text-[12.5px] text-ink-3">—</span>}
+                      {p.cells[d.date] ? (
+                        <span className="flex flex-col gap-0.5">
+                          <CheckDot status={p.cells[d.date].status} />
+                          {p.cells[d.date].responded_at && <span className="pl-3.5 font-mono text-[12px] text-ink-3">{fmtTime(p.cells[d.date].responded_at)}</span>}
+                        </span>
+                      ) : (
+                        <span className="text-[12.5px] text-ink-3">—</span>
+                      )}
                     </td>
                   ))}
                   <td className={cn('px-2 py-2.5 text-right font-mono text-[13px] font-bold', p.rate !== null && p.rate < 80 && 'text-missed')}>
@@ -263,8 +196,7 @@ function WeekGrid({ w }: { w: AttendanceWeek }) {
 
 // ── Mobile ─────────────────────────────────────────────────────────────
 
-function MobileToday({ t, flags }: { t: TodaySummary; flags: Flag[] }) {
-  const review = useReview();
+function MobileToday({ t }: { t: TodaySummary }) {
   const left = useSecondsLeft(t.answer_by);
   const rows = t.rows ?? [];
   const waiting = rows.filter((r) => r.status === 'pending');
@@ -327,19 +259,6 @@ function MobileToday({ t, flags }: { t: TodaySummary; flags: Flag[] }) {
         )}
       </section>
 
-      {flags.slice(0, 3).map((f) => (
-        <section key={f.id} aria-label="Needs your review" className="flex flex-col gap-2 rounded-[22px] border-2 border-missed bg-surface px-4 py-3.5">
-          <span className="text-xs font-bold uppercase tracking-[0.07em] text-missed">Needs your review</span>
-          <p className="m-0 text-[15.5px] font-bold">
-            {f.user.name} missed {dayName(f.date)}’s check
-          </p>
-          {f.misses_this_week > 1 && <p className="m-0 text-[13px] text-ink-3">That’s miss number {f.misses_this_week} this week.</p>}
-          <Button className="mt-1 w-full" onClick={() => review.mutate(f.id)} disabled={review.isPending && review.variables === f.id}>
-            Mark reviewed
-          </Button>
-        </section>
-      ))}
-
       {group('Still waiting', 'Haven’t tapped “I’m here” yet', waiting, () => (
         <span className="text-[13px] font-semibold text-review">Not yet</span>
       ))}
@@ -349,7 +268,7 @@ function MobileToday({ t, flags }: { t: TodaySummary; flags: Flag[] }) {
           {r.status === 'late' && ' · late'}
         </span>
       ))}
-      {group('Missed', 'No answer within 60 minutes', missed, () => (
+      {group('Missed', 'No answer within 30 minutes', missed, () => (
         <span className="text-[13px] font-semibold text-missed">Missed</span>
       ))}
       {group('Not counted today', 'Approved leave doesn’t count against anyone', skipped, () => (
@@ -371,6 +290,16 @@ function MobileWeek({ w }: { w: AttendanceWeek }) {
   if (!w.days.length) return <ErrorNote text="No checks have gone out in this period yet." />;
   return (
     <>
+      <section aria-label="When each check went out" className="flex flex-col gap-1.5 rounded-[22px] bg-surface px-4 py-3">
+        <span className="text-xs font-bold uppercase tracking-[0.07em] text-ink-3">Check sent at</span>
+        <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0">
+          {w.days.map((d) => (
+            <li key={d.date} className="text-[13.5px]">
+              <b>{weekday(d.date)}</b> <span className="font-mono text-ink-2">{fmtTime(d.sent_at)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
       <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[22px] bg-surface p-0">
         {w.people.map((p) => (
           <li key={p.user.id} className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-0">
@@ -379,8 +308,9 @@ function MobileWeek({ w }: { w: AttendanceWeek }) {
               {w.days.map((d) => {
                 const c = p.cells[d.date];
                 const b = c ? BOX[c.status] : BOX.skipped;
+                const label = `${weekday(d.date)}: ${b.label}${c?.responded_at ? ` at ${fmtTime(c.responded_at)}` : ''}`;
                 return (
-                  <span key={d.date} title={`${weekday(d.date)}: ${b.label}`} aria-label={`${weekday(d.date)}: ${b.label}`} className={cn('flex size-7 items-center justify-center rounded-lg text-xs font-bold', b.cls)}>
+                  <span key={d.date} title={label} aria-label={label} className={cn('flex size-7 items-center justify-center rounded-lg text-xs font-bold', b.cls)}>
                     {b.mark}
                   </span>
                 );
@@ -392,7 +322,7 @@ function MobileWeek({ w }: { w: AttendanceWeek }) {
           </li>
         ))}
       </ul>
-      <p className="m-0 px-1 text-xs text-ink-3">✓ on time · L late · ✕ missed · – not counted. {RULE}</p>
+      <p className="m-0 px-1 text-xs text-ink-3">✓ answered · ✕ missed · – not counted. {RULE}</p>
     </>
   );
 }

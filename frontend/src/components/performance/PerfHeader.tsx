@@ -22,13 +22,11 @@ const TAB_TITLES: Record<PerfTab, string> = {
 export function PerfHeader({
   url,
   manager,
-  missedBadge,
   showRange = true,
   mobileSub,
 }: {
   url: PerfUrl;
   manager: boolean;
-  missedBadge?: number;
   showRange?: boolean;
   mobileSub?: string;
 }) {
@@ -74,7 +72,7 @@ export function PerfHeader({
               { value: 'overview', label: 'Overview' },
               { value: 'kpi', label: 'KPI report' },
               { value: 'leaderboard', label: 'Leaderboard' },
-              { value: 'attendance', label: 'Attendance', badge: missedBadge || undefined },
+              { value: 'attendance', label: 'Attendance' },
             ]}
           />
         )}

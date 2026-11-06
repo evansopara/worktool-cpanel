@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, Badge } from '@/components/wc';
+import { Avatar } from '@/components/wc';
 import { fmtTime } from '@/lib/tasks';
 import { performanceApi, periodWord, roleName } from '@/lib/performance';
 import { BoardTable, card, cardTitle, ErrorNote, Loading, useSecondsLeft } from './parts';
@@ -50,17 +50,17 @@ export function OverviewTab({ url }: { url: PerfUrl }) {
     {
       label: 'Missed checks',
       short: 'Missed checks',
-      value: String(d.missed_unreviewed),
-      note: 'Waiting for your review',
-      shortNote: 'To review',
+      value: String(d.missed_checks),
+      note: `No answer within 30 minutes · ${periodWord(url.range)}`,
+      shortNote: periodWord(url.range),
       href: url.href({ tab: 'attendance' }),
-      yellow: d.missed_unreviewed > 0,
+      yellow: d.missed_checks > 0,
     },
   ];
 
   const links = [
     { label: 'Leaderboard', sub: 'Full ranking · staff and project managers', href: url.href({ tab: 'leaderboard' }) },
-    { label: 'Attendance', sub: 'Live check board and week view', href: url.href({ tab: 'attendance' }), badge: d.missed_unreviewed },
+    { label: 'Attendance', sub: 'Live check board and week view', href: url.href({ tab: 'attendance' }) },
     { label: 'KPI report', sub: 'Daily hours, productivity, estimate drift', href: url.href({ tab: 'kpi' }) },
   ];
 
@@ -97,7 +97,6 @@ export function OverviewTab({ url }: { url: PerfUrl }) {
               <span className="text-lg font-bold">{l.label}</span>
               <span className="text-[14px] text-ink-3">{l.sub}</span>
             </span>
-            {l.badge ? <Badge count={l.badge} /> : null}
             <ChevronRight className="size-5 text-ink-3" aria-hidden="true" />
           </Link>
         ))}

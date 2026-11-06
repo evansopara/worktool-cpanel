@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button, Sheet, SheetDescription, SheetEyebrow, SheetTitle } from '@/components/wc';
 import { errorText, fmtTime } from '@/lib/tasks';
 import { performanceApi, type MyCheck } from '@/lib/performance';
@@ -12,7 +11,7 @@ import { mmss, useSecondsLeft } from './parts';
 /**
  * The daily attendance check prompt (CheckIn / MCheckIn): a centred card on
  * desktop, a bottom sheet on mobile. It can't be dismissed while the check
- * is open; it closes after "I'm here" or when the 60-minute window ends.
+ * is open; it closes after "I'm here" or when the 30-minute window ends.
  * Polled once a minute; the push notification brings people back to the app.
  */
 export function AttendancePrompt({ firstName }: { firstName: string }) {
@@ -31,8 +30,8 @@ export function AttendancePrompt({ firstName }: { firstName: string }) {
 
   const check = q.data?.check ?? null;
   const offset = q.data?.offset ?? 0;
-  const lateLeft = useSecondsLeft(check?.late_until, -offset);
-  const open = !!check && ((check.status === 'pending' && lateLeft > 0) || !!done);
+  const left = useSecondsLeft(check?.answer_by, -offset);
+  const open = !!check && ((check.status === 'pending' && left > 0) || !!done);
 
   const respond = useMutation({
     mutationFn: (c: MyCheck) => performanceApi.respond(c.id),
@@ -88,10 +87,7 @@ function Body({
   error: string | null;
   onAnswer: () => void;
 }) {
-  const onTimeLeft = useSecondsLeft(check.answer_by, -offset);
-  const lateLeft = useSecondsLeft(check.late_until, -offset);
-  const late = onTimeLeft === 0;
-  const left = late ? lateLeft : onTimeLeft;
+  const left = useSecondsLeft(check.answer_by, -offset);
   const total = 30 * 60;
 
   return (
@@ -102,14 +98,14 @@ function Body({
       </p>
       <SheetTitle>Are you there, {name}?</SheetTitle>
       <div className="flex flex-col gap-2 rounded-[22px] bg-surface-2 px-5 py-4">
-        <span className={cn('font-mono text-[56px] leading-none font-bold tracking-[-0.02em] lg:text-[64px]', late && 'text-pending')} role="timer">
+        <span className={'font-mono text-[56px] leading-none font-bold tracking-[-0.02em] lg:text-[64px]'} role="timer">
           {mmss(left).replace(':', ' : ')}
         </span>
         <span className="text-[13px] text-ink-2">
-          {late ? 'left to answer late' : 'left to answer'} · sent at {fmtTime(check.sent_at)}
+          left to answer · sent at {fmtTime(check.sent_at)}
         </span>
         <div className="h-1.5 overflow-hidden rounded-full bg-stone">
-          <div className={cn('h-full rounded-full', late ? 'bg-pending-line' : 'bg-review-bar')} style={{ width: `${(left / total) * 100}%` }} />
+          <div className="h-full rounded-full bg-review-bar" style={{ width: `${(left / total) * 100}%` }} />
         </div>
       </div>
       <Button variant="accent" size="xl" className="w-full" onClick={onAnswer} disabled={pending}>
@@ -121,7 +117,7 @@ function Body({
         </p>
       )}
       <SheetDescription>
-        One check a day at a random time during working hours. Answering confirms you’re active on this signed-in device. Missed checks are flagged to your manager.
+        One check a day at a random time during working hours. Answering confirms you’re active on this signed-in device. If you don’t answer within 30 minutes, the check counts as missed.
       </SheetDescription>
     </>
   );

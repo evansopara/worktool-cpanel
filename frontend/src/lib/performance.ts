@@ -40,7 +40,6 @@ export type TodaySummary = {
   working_day: boolean;
   sent_at: string | null;
   answer_by?: string;
-  late_until?: string;
   expected?: number;
   answered?: number;
   waiting?: number;
@@ -52,7 +51,7 @@ export type TodaySummary = {
 export type Overview = Range & {
   on_time: { pct: number | null; ok: number; total: number };
   today: TodaySummary;
-  missed_unreviewed: number;
+  missed_checks: number;
   top: BoardRow[];
   people: BoardRow[];
 };
@@ -66,19 +65,9 @@ export type Leaderboard = Range & {
   my_attendance: { days: DayCheck[]; rate: number | null } | null;
 };
 
-export type Flag = {
-  id: number;
-  user: PersonRef;
-  date: string;
-  sent_at: string | null;
-  late_until: string | null;
-  misses_this_week: number;
-};
-
 export type AttendanceWeek = Range & {
   days: { date: string; sent_at: string }[];
   people: { user: PersonRef; cells: Record<string, { status: CheckStatus; responded_at: string | null }>; rate: number | null }[];
-  flags: Flag[];
 };
 
 export type MissedDeadline = {
@@ -104,7 +93,6 @@ export type MyCheck = {
   status: CheckStatus;
   sent_at: string;
   answer_by: string;
-  late_until: string;
   responded_at: string | null;
   server_now: string;
 };
@@ -117,7 +105,6 @@ export const performanceApi = {
   person: (id: number, r: Range) => api.get<PersonView>(`/performance/people/${id}`, { params: r }).then((x) => x.data),
   myCheck: () => api.get<{ check: MyCheck | null }>('/attendance/me').then((x) => x.data.check),
   respond: (id: number) => api.post<{ status: CheckStatus; responded_at: string }>(`/attendance/checks/${id}/respond`).then((x) => x.data),
-  review: (id: number) => api.post(`/attendance/checks/${id}/review`).then((x) => x.data),
 };
 
 // Everyone except Team Leads answers the daily check (decided 2026-11-06).
