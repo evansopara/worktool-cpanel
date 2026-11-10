@@ -143,6 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/push/public-key', [PushSubscriptionController::class, 'publicKey']);
     Route::post('/push/subscriptions', [PushSubscriptionController::class, 'store']);
     Route::delete('/push/subscriptions', [PushSubscriptionController::class, 'destroy']);
+    Route::post('/push/test', [PushSubscriptionController::class, 'test']);
 
     // Memos
     Route::get('/memos', [MemoController::class, 'index']);

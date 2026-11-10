@@ -100,6 +100,26 @@ class PushSubscriptionTest extends TestCase
         $this->assertSame(0, PushSubscription::count());
     }
 
+    public function test_test_push_needs_server_keys(): void
+    {
+        config(['services.webpush.public_key' => null, 'services.webpush.private_key' => null]);
+        Sanctum::actingAs($this->makeUser('alice'));
+
+        $this->postJson('/api/push/test', ['endpoint' => self::ENDPOINT])->assertStatus(503);
+    }
+
+    public function test_test_push_only_goes_to_your_own_device(): void
+    {
+        config(['services.webpush.public_key' => 'test-public-key', 'services.webpush.private_key' => 'test-private-key']);
+        $alice = $this->makeUser('alice');
+        Sanctum::actingAs($alice);
+        $this->postJson('/api/push/subscriptions', $this->subscriptionPayload())->assertCreated();
+
+        Sanctum::actingAs($this->makeUser('bob'));
+        $this->postJson('/api/push/test', ['endpoint' => self::ENDPOINT])->assertNotFound();
+        $this->postJson('/api/push/test', [])->assertUnprocessable();
+    }
+
     public function test_invalid_subscription_is_rejected(): void
     {
         Sanctum::actingAs($this->makeUser('alice'));

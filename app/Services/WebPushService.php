@@ -3,12 +3,18 @@
 namespace App\Services;
 
 use App\Models\PushSubscription;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
 
 class WebPushService
 {
+    public static function configured(): bool
+    {
+        return config('services.webpush.public_key') && config('services.webpush.private_key');
+    }
+
     /**
      * Send a push notification to every browser/device the user has
      * subscribed from. Subscriptions the push service reports as gone
@@ -16,10 +22,7 @@ class WebPushService
      */
     public static function sendToUser(int $userId, string $title, string $message, string $url, ?string $tag = null): void
     {
-        $publicKey = config('services.webpush.public_key');
-        $privateKey = config('services.webpush.private_key');
-
-        if (!$publicKey || !$privateKey) {
+        if (!self::configured()) {
             return;
         }
 
@@ -28,13 +31,34 @@ class WebPushService
             return;
         }
 
+        foreach (self::deliver($subscriptions, $title, $message, $url, $tag) as $reason) {
+            if ($reason !== null && $reason !== 'expired') {
+                Log::warning("Web push failed for user {$userId}: {$reason}");
+            }
+        }
+    }
+
+    /**
+     * Send to one device and say how it went: null when the push service
+     * accepted it, 'expired' when the subscription is gone (it is deleted),
+     * otherwise the push service's reason.
+     */
+    public static function sendTo(PushSubscription $subscription, string $title, string $message, string $url, ?string $tag = null): ?string
+    {
+        return self::deliver(collect([$subscription]), $title, $message, $url, $tag)[$subscription->endpoint] ?? null;
+    }
+
+    /** @return array<string, ?string> endpoint => null on success, else the failure reason */
+    private static function deliver(Collection $subscriptions, string $title, string $message, string $url, ?string $tag): array
+    {
+        $results = [];
         try {
             $webPush = new WebPush(
                 [
                     'VAPID' => [
                         'subject'    => config('services.webpush.subject'),
-                        'publicKey'  => $publicKey,
-                        'privateKey' => $privateKey,
+                        'publicKey'  => config('services.webpush.public_key'),
+                        'privateKey' => config('services.webpush.private_key'),
                     ],
                 ],
                 // Keep it for a day so a phone that's offline still gets it
@@ -66,17 +90,21 @@ class WebPushService
             }
 
             foreach ($webPush->flush() as $report) {
+                $endpoint = $report->getEndpoint();
                 if ($report->isSuccess()) {
-                    continue;
+                    $results[$endpoint] = null;
+                } elseif ($report->isSubscriptionExpired()) {
+                    ($byEndpoint[$endpoint] ?? null)?->delete();
+                    $results[$endpoint] = 'expired';
+                } else {
+                    $results[$endpoint] = $report->getReason();
                 }
-                if ($report->isSubscriptionExpired()) {
-                    ($byEndpoint[$report->getEndpoint()] ?? null)?->delete();
-                    continue;
-                }
-                Log::warning("Web push failed for user {$userId}: " . $report->getReason());
             }
         } catch (\Throwable $e) {
-            Log::warning("Web push failed for user {$userId}: " . $e->getMessage());
+            foreach ($subscriptions as $sub) {
+                $results[$sub->endpoint] = $e->getMessage();
+            }
         }
+        return $results;
     }
 }

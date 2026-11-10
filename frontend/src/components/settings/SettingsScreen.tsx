@@ -11,8 +11,9 @@ import { authApi, issuesApi } from '@/lib/api';
 import { cn, roleLabel } from '@/lib/utils';
 import { errorText } from '@/lib/tasks';
 import { useThemeChoice, type ThemeChoice } from '@/lib/theme';
+import { sendTestPush } from '@/lib/push';
 import { useNotificationAlert } from '@/providers/NotificationAlertProvider';
-import { initials } from '@/components/wc';
+import { Button, initials } from '@/components/wc';
 import { PageBody } from '@/components/shell/PageHeader';
 
 // Settings (Settings / MSettings artboards): profile, password, appearance
@@ -240,7 +241,54 @@ function Notifications() {
           </button>
         </div>
       )}
+      {enabled && !blocked && !unsupported && <TestPush />}
     </section>
+  );
+}
+
+const ANDROID_TIPS = [
+  'Long-press the test notification, open its settings and choose “Alerting” or turn on “Pop on screen”.',
+  'Phone Settings → Apps → Chrome (or Worktool, if you installed it) → Battery → Unrestricted.',
+  'On Tecno, Infinix, itel and Xiaomi phones, also allow Auto-start for Chrome in the phone manager app.',
+  'Check that Do Not Disturb or battery saver isn’t on.',
+];
+
+/** Sends a push to this device only, then explains what to fix if it doesn't pop up. */
+function TestPush() {
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const send = async () => {
+    setState('sending');
+    const r = await sendTestPush();
+    if (r.ok) {
+      setState('sent');
+    } else {
+      setState('idle');
+      toast.error(`Couldn’t send a test notification: ${r.error}`);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-line pt-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="m-0 max-w-[480px] text-[13.5px] leading-normal text-ink-2">Not sure notifications reach this device? Send yourself one.</p>
+        <Button variant="secondary" size="md" onClick={send} disabled={state === 'sending'}>
+          {state === 'sending' ? 'Sending…' : state === 'sent' ? 'Send another' : 'Send me a test notification'}
+        </Button>
+      </div>
+      {state === 'sent' && (
+        <div role="status" className="flex flex-col gap-2 rounded-[18px] bg-surface-2 px-4 py-3.5 text-[13.5px] leading-normal">
+          <p className="m-0">
+            <strong>Sent.</strong> It should pop up on this device within a few seconds. To check it works with the app closed, send one and then lock your phone straight away.
+          </p>
+          <p className="m-0 text-ink-2">If it only appeared quietly in the notification bar, or not at all, on Android:</p>
+          <ul className="m-0 flex flex-col gap-1 pl-5 text-ink-2">
+            {ANDROID_TIPS.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 

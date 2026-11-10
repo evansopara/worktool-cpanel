@@ -19,9 +19,14 @@ self.addEventListener('push', (event) => {
     icon: data.icon || '/icon-192.png',
     badge: '/icon-192.png',
     data: { url: data.url || '/dashboard' },
+    vibrate: [200, 100, 200],
   };
   // Same tag as the in-app poller's alert, so the browser shows one, not two.
-  if (data.tag) options.tag = data.tag;
+  // renotify makes a replacement alert again instead of swapping in silently.
+  if (data.tag) {
+    options.tag = data.tag;
+    options.renotify = true;
+  }
 
   event.waitUntil(self.registration.showNotification(title, options));
 });

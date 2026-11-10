@@ -133,6 +133,7 @@ export const pushApi = {
   subscribe: (subscription: { endpoint: string; keys: { p256dh: string; auth: string }; content_encoding: string }) =>
     api.post('/push/subscriptions', subscription),
   unsubscribe: (endpoint: string) => api.delete('/push/subscriptions', { data: { endpoint } }),
+  test: (endpoint: string) => api.post<{ sent: boolean }>('/push/test', { endpoint }),
 };
 
 // Memos

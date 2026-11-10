@@ -100,6 +100,24 @@ export async function subscribeToPush(): Promise<PushResult> {
   }
 }
 
+// "Send me a test notification": makes sure this device is linked, then asks
+// the server to push to this device only. Resolves when the push service has
+// accepted it; whether it pops up is then up to the phone.
+export async function sendTestPush(): Promise<PushResult> {
+  const linked = await subscribeToPush();
+  if (!linked.ok) return linked;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) return { ok: false, step: 'test', error: 'no push subscription on this device' };
+    await pushApi.test(subscription.endpoint);
+    return { ok: true };
+  } catch (e) {
+    const err = e as { response?: { data?: { message?: string } } };
+    return { ok: false, step: 'test', error: err.response?.data?.message ?? describeError(e) };
+  }
+}
+
 // Called on logout (while the auth token is still valid) so this device
 // stops receiving the previous user's notifications.
 export async function unsubscribeFromPush(): Promise<void> {
