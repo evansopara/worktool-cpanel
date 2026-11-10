@@ -47,7 +47,8 @@ class NotificationLinks
             case 'booking':
                 return '/dashboard/bookings';
             case 'attendance_check':
-                return $user->isManager() ? '/dashboard/performance?tab=attendance' : '/dashboard/performance';
+                // The "I'm here" prompt opens on any page.
+                return '/dashboard';
             case 'technical_support_request':
                 return '/dashboard/support';
             case 'issue_report':

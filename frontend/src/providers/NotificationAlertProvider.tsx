@@ -89,7 +89,8 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
 
   // Opening the app (or switching back to it) clears this app's notifications
   // from the phone's notification bar, like chat apps do. They stay unread in
-  // the app's own bell until looked at.
+  // the app's own bell until looked at. Ones from the last minute stay, so
+  // pulling down the notification bar doesn't wipe one that just came in.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     const clearTray = () => {
@@ -97,12 +98,27 @@ export function NotificationAlertProvider({ children }: { children: React.ReactN
       navigator.serviceWorker
         .getRegistration('/')
         .then((reg) => reg?.getNotifications())
-        .then((list) => list?.forEach((n) => n.close()))
+        .then((list) => list?.forEach((n) => Date.now() - ((n as Notification & { timestamp?: number }).timestamp ?? 0) > 60_000 && n.close()))
         .catch(() => {});
     };
     clearTray();
     document.addEventListener('visibilitychange', clearTray);
     return () => document.removeEventListener('visibilitychange', clearTray);
+  }, []);
+
+  // The Settings test notification arrives while the app is open, where the
+  // phone may not pop it up; the service worker passes it on and the app
+  // shows it too.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    const onMessage = (e: MessageEvent) => {
+      const d = e.data as { type?: string; title?: string; body?: string; tag?: string | null } | null;
+      if (d?.type !== 'push' || !d.tag?.startsWith('push-test') || document.visibilityState !== 'visible') return;
+      audioRef.current?.play().catch(() => {});
+      toast(d.title ?? 'Test notification', { description: d.body });
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
   }, []);
 
   useEffect(() => {

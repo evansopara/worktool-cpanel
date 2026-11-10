@@ -110,21 +110,25 @@ class Attendance
             }
             foreach (self::checkedUsers() as $user) {
                 $skipped = $leave->contains($user->id);
-                AttendanceCheck::firstOrCreate(
+                $check = AttendanceCheck::firstOrCreate(
                     ['user_id' => $user->id, 'date' => $date],
                     ['status' => $skipped ? AttendanceCheck::SKIPPED : AttendanceCheck::PENDING, 'notified_at' => $skipped ? null : $day->send_at],
                 );
                 if (!$skipped) {
-                    $notify[] = $user;
+                    $notify[] = [$user, $check];
                 }
             }
         });
 
-        $by = $day->send_at->copy()->addMinutes(self::ON_TIME_MINUTES)->format('g:i A');
-        foreach ($notify as $user) {
+        // Push, email and the in-app bell, after the transaction so a slow
+        // mail server can't hold the rows locked.
+        $from = $day->send_at->format('g:i A');
+        $until = $day->send_at->copy()->addMinutes(self::ON_TIME_MINUTES)->format('g:i A');
+        foreach ($notify as [$user, $check]) {
             try {
-                WebPushService::sendToUser($user->id, "Are you there, {$user->first_name}?",
-                    "Attendance check · tap \"I'm here\" by {$by}.", '/dashboard', "attendance-{$date}");
+                NotificationService::send($user->id, 'attendance_check', "Are you there, {$user->first_name}?",
+                    "Attendance check: open Worktool and tap \"I'm here\" between {$from} and {$until}.", $check->id, 'attendance_check',
+                    pushTag: "attendance-{$date}");
             } catch (\Throwable $e) {
                 report($e);
             }

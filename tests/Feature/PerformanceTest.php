@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\AppNotification;
 use App\Models\AttendanceCheck;
 use App\Models\AttendanceDay;
 use App\Models\Notification;
@@ -107,7 +108,15 @@ class PerformanceTest extends TestCase
 
     public function test_everyone_but_team_leads_gets_the_same_check_and_leave_is_skipped(): void
     {
+        $this->staff->forceFill(['email' => 'victor@example.com'])->save();
+        $this->onLeave->forceFill(['email' => 'linda@example.com'])->save();
         $this->fireAt();
+        // Each person checked gets it by email and in the bell too.
+        Mail::assertSent(AppNotification::class, fn ($m) => $m->hasTo('victor@example.com'));
+        Mail::assertNotSent(AppNotification::class, fn ($m) => $m->hasTo('linda@example.com'));
+        $this->assertStringContainsString('between 2:12 PM and 2:42 PM',
+            Notification::where('user_id', $this->staff->id)->where('type', 'attendance_check')->firstOrFail()->message);
+        $this->assertFalse(Notification::where('user_id', $this->lead->id)->exists());
         $this->assertSame(AttendanceCheck::PENDING, $this->check($this->staff)->status);
         $this->assertSame(AttendanceCheck::PENDING, $this->check($this->ops)->status);
         $this->assertSame(AttendanceCheck::SKIPPED, $this->check($this->onLeave)->status);
