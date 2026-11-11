@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>People</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}a:hover{color:#000000}
+@media (min-width: 900px){.wc-side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div class="wc-side" style="flex:1 1 248px;background:#121212"><dc-import name="Topbar" active="people" hint-size="100%,1000px"></dc-import></div>
+<main style="flex:999 1 560px;min-width:0;max-width:1280px;margin:0 auto;box-sizing:border-box;padding:28px 40px 72px;display:flex;flex-direction:column;gap:22px">
+
+<header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding:8px 0 4px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:56px;line-height:1;font-weight:700;letter-spacing:-0.04em">People</h1>
+<p style="margin:0;font-size:16px;color:#4D4A44">Your team, their leave, and every query and complaint</p>
+</div>
+<div role="tablist" aria-label="People sections" style="display:flex;flex-wrap:wrap;gap:2px;padding:5px;border-radius:999px;background:#FFFFFF">
+<sc-for list="{{tabs}}" as="tb" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{tb.sel}}" onClick="{{tb.pick}}" style="display:flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:0;border-radius:999px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{tb.bg}};color:{{tb.fg}}">{{tb.label}}<sc-if value="{{tb.badge}}" hint-placeholder-val="{{ false }}"><span style="min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:#FFD43B;color:#121212;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{tb.badge}}</span></sc-if></button>
+</sc-for>
+</div>
+</header>
+
+<sc-if value="{{isLeave}}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:20px">
+<section aria-label="Leave summary" style="display:flex;flex-wrap:wrap;background:#121212;color:#FFFFFF;border-radius:28px;overflow:hidden">
+<sc-for list="{{leaveStats}}" as="s" hint-placeholder-count="3">
+<div style="flex:1 1 220px;display:flex;align-items:center;gap:18px;padding:24px 28px;border-right:1px solid #2A2926">
+<span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:56px;line-height:0.9;font-weight:700;color:{{s.c}}">{{s.value}}</span>
+<span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">{{s.label}}</span><span style="font-size:13.5px;color:#A8A49C">{{s.note}}</span></span>
+</div>
+</sc-for>
+</section>
+<section aria-labelledby="h-wait" style="display:flex;flex-direction:column;gap:12px">
+<h2 id="h-wait" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em">Waiting on you</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px">
+<sc-for list="{{pending}}" as="l" hint-placeholder-count="2">
+<article style="display:flex;flex-direction:column;gap:16px;padding:24px;border-radius:26px;background:#FFFFFF">
+<div style="display:flex;align-items:center;gap:12px"><span style="flex:none;width:46px;height:46px;border-radius:50%;background:#FFD43B;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">{{l.ini}}</span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:700">{{l.name}}</span><span style="font-size:13px;color:#6A665F">{{l.email}}</span></div><span style="font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;background:#DCE6F7;color:#1E4797">{{l.type}}</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:8px 24px;padding:14px 16px;border-radius:18px;background:#F7F6F2"><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Period</span><span style="font-size:15px;font-weight:600">{{l.period}}</span></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Days</span><span style="font-size:15px;font-weight:600">{{l.days}}</span></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:#6A665F">Applied</span><span style="font-size:15px;font-weight:600">{{l.applied}}</span></span></div>
+<p style="margin:0;font-size:14.5px;color:#4D4A44">“{{l.reason}}”</p>
+<div style="display:flex;gap:10px"><button type="button" style="flex:1;height:48px;border:0;border-radius:999px;background:#EFEDE7;color:#C0362C;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">Reject</button><button type="button" style="flex:1;height:48px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">Approve</button></div>
+</article>
+</sc-for>
+</div>
+</section>
+<section aria-labelledby="h-hist" style="background:#FFFFFF;border-radius:28px;padding:26px;display:flex;flex-direction:column;gap:6px">
+<h2 id="h-hist" style="margin:0 0 8px;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em">History</h2>
+<sc-for list="{{history}}" as="l" hint-placeholder-count="2">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;padding:14px 0;border-top:1px solid #ECEAE4">
+<span style="flex:2 1 220px;display:flex;align-items:center;gap:12px"><span style="flex:none;width:38px;height:38px;border-radius:50%;background:#EFEDE7;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">{{l.ini}}</span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:700">{{l.name}}</span><span style="font-size:12.5px;color:#6A665F">{{l.email}}</span></span></span>
+<span style="flex:1 1 130px;font-size:14px;font-weight:600">{{l.type}}</span>
+<span style="flex:1.5 1 180px;display:flex;flex-direction:column;gap:1px;font-size:14px"><span style="font-weight:600">{{l.period}}</span><span style="font-size:12.5px;color:#6A665F">{{l.days}} · applied {{l.applied}}</span></span>
+<span style="flex:1.5 1 160px;font-size:13.5px;color:#4D4A44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{l.reason}}</span>
+<span style="font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;background:#E2F2E7;color:#1F7A4A">Approved</span>
+</div>
+</sc-for>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isTeam}}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:24px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<section style="display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;display:flex;align-items:baseline;gap:10px;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em">{{g.role}}<span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:14px;font-weight:600;color:#6A665F">{{g.count}}</span></h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
+<sc-for list="{{g.people}}" as="p" hint-placeholder-count="2">
+<article style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:24px;background:#FFFFFF">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="position:relative;width:56px;height:56px;border-radius:50%;background:{{p.abg}};color:{{p.afg}};display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:19px;font-weight:700">{{p.ini}}<span style="position:absolute;right:1px;bottom:1px;width:13px;height:13px;border-radius:50%;border:3px solid #FFFFFF;background:{{p.dot}}"></span></span><a href="Inbox.dc.html" aria-label="Message {{p.name}}" style="width:44px;height:44px;border-radius:50%;background:#EFEDE7;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg></a></div>
+<div style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="font-size:16px;font-weight:700">{{p.name}}</span><span style="font-size:13px;color:#6A665F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{p.email}}</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#F7F6F2">{{p.presence}}</span><sc-if value="{{p.dept}}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#F7F6F2">{{p.dept}}</span></sc-if></div>
+</article>
+</sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isQueries}}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><p style="margin:0;font-size:15px;color:#4D4A44">Send and track queries issued to staff</p><button type="button" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 22px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Send query</button></div>
+<sc-for list="{{queries}}" as="q" hint-placeholder-count="2">
+<article style="display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;padding:24px 26px;border-radius:26px;background:#FFFFFF">
+<div style="flex:1 1 360px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em">{{q.title}}</h2><span style="font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#E2F2E7;color:#1F7A4A">Acknowledged</span></div>
+<p style="margin:0;font-size:15px">{{q.body}}</p>
+<p style="margin:0;font-size:13.5px;color:#6A665F">Issued by {{q.by}} to {{q.to}} · {{q.when}}</p>
+</div>
+<button type="button" style="height:44px;padding:0 18px;border:0;border-radius:999px;background:#EFEDE7;color:#C0362C;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Delete</button>
+</article>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isComplaints}}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:16px">
+<div role="group" aria-label="Complaint status" style="display:flex;flex-wrap:wrap;gap:8px">
+<button type="button" aria-pressed="true" style="display:flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Pending<span style="font-family:'Geist Mono',ui-monospace,monospace;color:#FFD43B">1</span></button>
+<button type="button" aria-pressed="false" style="display:flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:0;border-radius:999px;background:#FFFFFF;color:#4D4A44;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Reviewed<span style="font-family:'Geist Mono',ui-monospace,monospace">0</span></button>
+<button type="button" aria-pressed="false" style="display:flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:0;border-radius:999px;background:#FFFFFF;color:#4D4A44;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Resolved<span style="font-family:'Geist Mono',ui-monospace,monospace">7</span></button>
+</div>
+<article style="display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;padding:26px;border-radius:26px;background:#FFFFFF">
+<span style="flex:none;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:48px;line-height:1;font-weight:700;color:#C0362C">#7</span>
+<div style="flex:1 1 360px;display:flex;flex-direction:column;gap:6px"><p style="margin:0;font-size:18px;font-weight:700">“test”</p><p style="margin:0;font-size:14px;color:#4D4A44">Temitayo Matthew Akintunde · akinstemi123@gmail.com · Department: Test</p><p style="margin:0;font-size:13px;color:#6A665F">Submitted May 6, 2026 · 12:08 PM</p></div>
+<span style="font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;background:#FBE7E4;color:#C0362C">Pending</span>
+<button type="button" style="height:48px;padding:0 24px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer">Review</button>
+</article>
+</div>
+</sc-if>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 'leave' }; }
+  renderVals() {
+    var self = this, tab = this.state.tab;
+    function mk(id, label, badge) { var on = tab === id; return { label: label, badge: badge || '', sel: on ? 'true' : 'false', bg: on ? '#121212' : 'transparent', fg: on ? '#FFFFFF' : '#4D4A44', pick: function () { self.setState({ tab: id }); } }; }
+    var pal = [['#FFD43B', '#121212'], ['#121212', '#FFD43B'], ['#DCE6F7', '#1E4797'], ['#E2F2E7', '#1F7A4A']];
+    var k = 0;
+    function p(name, ini, email, on, dept) { var c = pal[k++ % 4]; return { name: name, ini: ini, email: email, dot: on ? '#1F9D57' : '#E0A100', presence: on ? 'Online' : 'Away', dept: dept || '', abg: c[0], afg: c[1] }; }
+    return {
+      tabs: [ mk('leave', 'Leave', '2'), mk('team', 'Team'), mk('queries', 'Queries'), mk('complaints', 'Staff complaints', '1') ],
+      isLeave: tab === 'leave', isTeam: tab === 'team', isQueries: tab === 'queries', isComplaints: tab === 'complaints',
+      leaveStats: [ { value: '2', label: 'Pending review', note: 'Applications awaiting review', c: '#FFD43B' }, { value: '5', label: 'Approved', note: 'Approved applications', c: '#FFFFFF' }, { value: '0', label: 'Rejected', note: 'Rejected applications', c: '#8E8A82' } ],
+      pending: [
+        { name: 'Linda Ekeh', ini: 'LE', email: 'linda.ekeh22@gmail.com', type: 'Annual', period: 'Jun 2 – Jun 3, 2026', days: '1', applied: 'May 25, 2026', reason: 'Dear BI, I would…' },
+        { name: 'Temitayo Akintunde', ini: 'TA', email: 'akinstemi123@gmail.com', type: 'Annual', period: 'May 25 – May 29, 2026', days: '1', applied: 'May 4, 2026', reason: 'teting' }
+      ],
+      history: [
+        { name: 'Mirakl', ini: 'MI', email: 'somchimiracle@gmail.com', type: 'Leave of Absence', period: 'Apr 1 – Apr 7, 2026', days: '5 days', applied: 'Mar 13, 2026', reason: 'My presence is…' },
+        { name: 'Olubukola Ige', ini: 'OI', email: 'bukkieige@gmail.com', type: 'Day Off', period: 'Nov 24, 2025', days: '1 day', applied: 'Nov 19, 2025', reason: 'I have a pre-e…' }
+      ],
+      groups: [
+        { role: 'Operations Manager', count: '1', people: [ p('Olubukola Ige', 'OI', 'bukkieige@gmail.com', true) ] },
+        { role: 'Team Lead', count: '2', people: [ p('Dummy teamlead', 'DT', 'lightweight324+id31@gmail.com', false), p('Mayowa Adeoti', 'MA', 'mayowa.adeoti@wcdigitalagency.com', false) ] },
+        { role: 'Project Manager', count: '5', people: [ p('Adeleke Toyin', 'AT', 'adelekedewunmi@gmail.com', true, 'Automation'), p('Aliyah Yisau', 'AY', 'aliyahtolorunlashe@gmail.com', true, 'Community_manager'), p('Dummy pm', 'DP', 'lightweight324+id33@gmail.com', false), p('Ololade Michaels', 'OM', 'igeololade@gmail.com', true, 'Project Manager'), p('Saka Maria Abiodun', 'SM', 'sakamaria@wcdigitalagency.com', false) ] }
+      ],
+      queries: [
+        { title: 'acid', body: 'cupcake', by: 'Olubukola Ige', to: 'Blank account', when: '3 months ago' },
+        { title: 'm bjvhcgtxrtasdf', body: 'wrongly_using_work_app', by: 'Emmanuel Evans', to: '—', when: 'about 1 year ago' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div style="position:absolute;left:0;bottom:0;z-index:2"><dc-import name="MTabBar" active="more" hint-size="390px,96px"></dc-import></div>
+<div style="height:844px;overflow-y:auto;box-sizing:border-box;padding:52px 18px 120px;display:flex;flex-direction:column;gap:14px">
+
+<div style="display:flex;align-items:center;gap:10px">
+<a href="MMore.dc.html" aria-label="Back to More" style="width:44px;height:44px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;flex:1;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:34px;line-height:1;font-weight:700;letter-spacing:-0.04em">Library</h1>
+</div>
+
+<label style="display:flex;align-items:center;gap:10px;height:48px;padding:0 18px;border-radius:999px;background:#FFFFFF;color:#6A665F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg><input type="search" aria-label="Search SOPs and notes" placeholder="Search SOPs and notes" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font-family:inherit;font-size:15px;color:#121212"></label>
+
+<section aria-labelledby="ml-sop" style="padding:24px;border-radius:28px;background:#121212;color:#FFFFFF;display:flex;flex-direction:column;gap:12px">
+<p style="margin:0;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#FFD43B">Standard operating procedures</p>
+<h2 id="ml-sop" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:32px;line-height:1.02;font-weight:700;letter-spacing:-0.03em">No SOPs yet</h2>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#BDB9B0">Write the first procedure so every project runs from the same playbook.</p>
+<button type="button" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 22px;border:0;border-radius:999px;background:#FFD43B;color:#121212;font-family:inherit;font-size:15px;font-weight:700"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New SOP</button>
+</section>
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;padding:6px 4px 0"><h2 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:22px;font-weight:700">My notes</h2><span style="font-size:12.5px;font-weight:600;color:#6A665F">Only visible to you</span></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<article style="min-height:170px;box-sizing:border-box;padding:18px;border-radius:24px;background:#FFD43B;display:flex;flex-direction:column;gap:8px">
+<h3 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:19px;font-weight:700">Things to do</h3>
+<p style="margin:0;flex:1;font-size:14px">LOrem impsum</p>
+<p style="margin:0;font-size:12px;font-weight:600;color:#4D3B00">in less than a minute</p>
+</article>
+<button type="button" style="min-height:170px;border-radius:24px;border:1.5px dashed #CFCAC0;background:transparent;color:#121212;font-family:inherit;font-size:14.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px"><span style="width:46px;height:46px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>New note</button>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -12,4 +12,5 @@ class DeadlineExtensionRequest extends Model
     public function task() { return $this->belongsTo(Task::class); }
     public function requester() { return $this->belongsTo(User::class, 'requester_id'); }
     public function projectManager() { return $this->belongsTo(User::class, 'project_manager_id'); }
+    public function decider() { return $this->belongsTo(User::class, 'decided_by'); }
 }

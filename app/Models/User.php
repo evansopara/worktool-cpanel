@@ -53,6 +53,22 @@ class User extends Authenticatable
         return $parts[1] ?? '';
     }
 
+    /**
+     * Roles that create and manage tasks (design/HANDOFF_SPEC.md §5). Customer
+     * Support Officers count as managers (decided 2026-10-27).
+     */
+    public const MANAGER_ROLES = ['operations_manager', 'team_lead', 'project_manager', 'customer_support_officer'];
+
+    public function isManager(): bool
+    {
+        return in_array($this->role, self::MANAGER_ROLES, true);
+    }
+
+    public function fullName(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}") ?: (string) $this->username;
+    }
+
     public function currentTask() { return $this->belongsTo(Task::class, 'current_task_id'); }
     public function managedProjects() { return $this->hasMany(Project::class, 'manager_id'); }
     public function tasks() { return $this->hasMany(Task::class, 'assignee_id'); }

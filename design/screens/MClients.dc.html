@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile clients</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div style="position:absolute;left:0;bottom:0;z-index:2"><dc-import name="MTabBar" active="more" hint-size="390px,96px"></dc-import></div>
+<div style="height:844px;overflow-y:auto;box-sizing:border-box;padding:52px 18px 120px;display:flex;flex-direction:column;gap:14px">
+
+<div style="display:flex;align-items:center;gap:10px">
+<a href="MMore.dc.html" aria-label="Back to More" style="width:44px;height:44px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+<h1 style="margin:0;flex:1;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:34px;line-height:1;font-weight:700;letter-spacing:-0.04em">Clients</h1>
+<label style="display:flex;align-items:center;height:44px;padding:0 6px 0 14px;border-radius:999px;background:#FFFFFF"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Week</span><select style="height:40px;border:0;background:transparent;font-family:inherit;font-size:13.5px;font-weight:700;color:#121212"><option>This week</option><option>Last week</option></select></label>
+</div>
+
+<section aria-labelledby="mcl-s" style="padding:20px;border-radius:26px;background:#121212;color:#FFFFFF;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:4px"><h2 id="mcl-s" style="margin:0;font-size:14px;font-weight:600;color:#A8A49C">Client sentiment · this week</h2><p style="margin:0;display:flex;align-items:baseline;gap:10px"><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:64px;line-height:0.9;font-weight:700;color:#FFD43B">0</span><span style="font-size:16px;font-weight:600">responses</span></p></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:18px;background:#1E1D1B"><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:26px;line-height:1;font-weight:700">0</span><span style="font-size:12px;font-weight:600;color:#BDB9B0">{{s}} · 0%</span></div></sc-for>
+</div>
+</section>
+
+<section style="padding:20px;border-radius:26px;background:#FFFFFF;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+<span style="width:48px;height:48px;border-radius:50%;background:#FFD43B;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#121212" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path></svg></span>
+<h2 style="margin:0;font-size:16px;font-weight:700">No feedback yet</h2>
+<p style="margin:0;font-size:13.5px;color:#6A665F">No client sentiment data available for the selected week.</p>
+</section>
+
+<div style="display:flex;align-items:baseline;gap:10px;padding:6px 4px 0"><h2 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:22px;font-weight:700">Complaints</h2><span style="font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:#FBE7E4;color:#C0362C">2 pending</span></div>
+<sc-for list="{{complaints}}" as="c" hint-placeholder-count="2">
+<article style="display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:24px;background:#FFFFFF">
+<div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:32px;line-height:1;font-weight:700;color:#C0362C">{{c.n}}</span><span style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:#FBE7E4;color:#C0362C">Pending</span></div>
+<p style="margin:0;font-size:17px;font-weight:700">“{{c.text}}”</p>
+<p style="margin:0;font-size:13.5px;color:#4D4A44">{{c.client}}</p>
+<div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{c.tags}}" as="tg" hint-placeholder-count="2"><span style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:#F7F6F2">{{tg}}</span></sc-for></div>
+<p style="margin:0;font-size:12.5px;color:#6A665F">{{c.email}} · {{c.when}}</p>
+<button type="button" style="height:46px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:14.5px;font-weight:600">Review</button>
+</article>
+</sc-for>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      stats: ['Satisfied', 'Dissatisfied', 'Flags'],
+      complaints: [
+        { n: '#2', text: 'Slow timer', client: 'Temitayo Matthew Akintunde', email: 'akinstemi123@gmail.com', tags: ['PM: Linda', 'Developer: Hydee'], when: 'May 1, 2026, 11:04 PM' },
+        { n: '#1', text: 'n nnkk/.lk;', client: 'Adeleke Toyin', email: 'adelekedewunmi@gmail.com', tags: ['PM: saka maria'], when: 'May 1, 2026, 5:22 PM' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

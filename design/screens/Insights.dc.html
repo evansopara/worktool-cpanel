@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Insights</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}a:hover{color:#000000}
+@media (min-width: 900px){.wc-side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212">
+<div class="wc-side" style="flex:1 1 248px;background:#121212"><dc-import name="Topbar" active="insights" hint-size="100%,1000px"></dc-import></div>
+<main style="flex:999 1 560px;min-width:0;max-width:1280px;margin:0 auto;box-sizing:border-box;padding:28px 40px 72px;display:flex;flex-direction:column;gap:22px">
+
+<header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px;padding:8px 0 4px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:56px;line-height:1;font-weight:700;letter-spacing:-0.04em">Insights</h1>
+<p style="margin:0;font-size:16px;color:#4D4A44">Employee performance and productivity tracking</p>
+</div>
+<div role="tablist" aria-label="Reports" style="display:flex;gap:2px;padding:5px;border-radius:999px;background:#FFFFFF">
+<button type="button" role="tab" aria-selected="true" style="height:42px;padding:0 20px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">KPI report</button>
+<button type="button" role="tab" aria-selected="false" style="height:42px;padding:0 20px;border:0;border-radius:999px;background:transparent;color:#4D4A44;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Estimate drift</button>
+</div>
+</header>
+
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+<label style="display:flex;align-items:center;gap:6px;height:48px;padding:0 8px 0 20px;border-radius:999px;background:#FFFFFF;font-size:13.5px;font-weight:600;color:#6A665F">{{f.k}}<select style="height:40px;border:0;background:transparent;font-family:inherit;font-size:15px;font-weight:700;color:#121212;cursor:pointer"><option>{{f.v}}</option></select></label>
+</sc-for>
+<div style="margin-left:auto;display:flex;gap:8px">
+<button type="button" style="height:48px;padding:0 20px;border:0;border-radius:999px;background:#FFFFFF;color:#121212;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Export PDF</button>
+<button type="button" style="height:48px;padding:0 20px;border:0;border-radius:999px;background:#FFFFFF;color:#121212;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Export Excel</button>
+</div>
+</div>
+
+<section aria-labelledby="h-hours" style="background:#121212;color:#FFFFFF;border-radius:30px;padding:30px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px">
+<div style="display:flex;align-items:center;gap:14px"><span style="width:52px;height:52px;border-radius:50%;background:#FFD43B;color:#121212;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:18px;font-weight:700">MI</span><div style="display:flex;flex-direction:column;gap:2px"><h2 id="h-hours" style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-0.02em">Daily hours — Mirakl</h2><span style="font-size:14px;color:#A8A49C">September 1 – 30 · all departments</span></div></div>
+<span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#BDB9B0"><span style="width:12px;height:12px;border-radius:4px;background:#FFD43B"></span>Hours logged</span>
+</div>
+<div role="img" aria-label="Bar chart of Mirakl’s daily logged hours in September; the busiest days were Sep 2 and Sep 7, with smaller peaks on Sep 1, 3, 4, 24, 25 and 29, and almost no hours on other days" style="display:flex;flex-direction:column;gap:10px">
+<div style="height:280px;display:flex;align-items:flex-end;gap:6px;border-bottom:1px solid #3A3936;background-image:linear-gradient(#232220 1px,transparent 1px);background-size:100% 70px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="30"><span style="flex:1;min-width:4px;border-radius:8px 8px 2px 2px;height:{{b.h}};background:{{b.c}}"></span></sc-for>
+</div>
+<div style="display:flex;gap:6px"><sc-for list="{{bars}}" as="b" hint-placeholder-count="30"><span style="flex:1;min-width:4px;text-align:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;color:#A8A49C">{{b.label}}</span></sc-for></div>
+</div>
+</section>
+
+<section aria-label="Productivity breakdown" style="background:#FFFFFF;border-radius:30px;padding:26px;display:flex;flex-direction:column;gap:18px">
+<div role="tablist" aria-label="Breakdown" style="display:flex;flex-wrap:wrap;gap:8px">
+<button type="button" role="tab" aria-selected="true" style="height:42px;padding:0 18px;border:0;border-radius:999px;background:#121212;color:#FFFFFF;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Daily productivity details</button>
+<button type="button" role="tab" aria-selected="false" style="height:42px;padding:0 18px;border:0;border-radius:999px;background:#EFEDE7;color:#4D4A44;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Productivity score</button>
+<button type="button" role="tab" aria-selected="false" style="height:42px;padding:0 18px;border:0;border-radius:999px;background:#EFEDE7;color:#4D4A44;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Staff summary</button>
+</div>
+<div style="min-height:180px;border-radius:22px;background:#F7F6F2;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-size:15px;font-weight:600;color:#6A665F">[Daily productivity details for the selected employee and date range]</div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = [0.32, 0.96, 0.62, 0.48, 0.02, 0.02, 1, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.36, 0.5, 0.12, 0.02, 0.02, 0.22, 0.02];
+    return {
+      filters: [ { k: 'Department', v: 'All departments' }, { k: 'Employee', v: 'Mirakl' }, { k: 'Range', v: 'Last month' } ],
+      bars: v.map(function (x, i) { var d = i + 1; return { h: Math.max(x * 100, 1.5) + '%', c: x > 0.05 ? '#FFD43B' : '#3A3936', label: d % 4 === 1 ? String(d) : '' }; })
+    };
+  }
+}
+</script>
+</body>
+</html>

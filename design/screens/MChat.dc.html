@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile team chat</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#121212}
+</style>
+</helmet>
+<div style="position:relative;width:390px;height:844px;overflow:hidden;background:#EFEDE7;font-family:'Geist',system-ui,sans-serif;color:#121212;display:flex;flex-direction:column">
+
+<header style="flex:none;display:flex;align-items:center;gap:10px;padding:50px 14px 14px">
+<a href="MInbox.dc.html" aria-label="Back to inbox" style="flex:none;width:44px;height:44px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+<a href="MProject.dc.html" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-decoration:none;color:#121212">
+<span style="flex:none;width:44px;height:44px;border-radius:15px;background:#121212;color:#FFD43B;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">QS</span>
+<span style="min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:19px;font-weight:700;line-height:1.1">QueenbodySecret</span><span style="font-size:12.5px;color:#6A665F">12 members</span></span>
+</a>
+<button type="button" aria-label="Start voice call" style="flex:none;width:44px;height:44px;border:0;border-radius:50%;background:#FFFFFF;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"></path></svg></button>
+<button type="button" aria-label="Start video call" style="flex:none;width:44px;height:44px;border:0;border-radius:50%;background:#121212;color:#FFD43B;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 7l-7 5 7 5zM3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path></svg></button>
+</header>
+
+<div style="flex:1;overflow-y:auto;margin:0 10px;padding:18px 12px;border-radius:30px 30px 0 0;background:#FFFFFF;display:flex;flex-direction:column;gap:16px">
+<p style="align-self:center;margin:0;font-size:12.5px;font-weight:600;color:#6A665F">Today</p>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div style="display:flex;gap:8px;align-items:flex-end">
+<span style="flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:{{g.bg}};color:{{g.fg}}">{{g.ini}}</span>
+<div style="max-width:80%;display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+<span style="padding-left:4px;font-size:12.5px;font-weight:600;color:#4D4A44">{{g.who}} <span style="font-weight:400;color:#6A665F">{{g.time}}</span></span>
+<sc-for list="{{g.msgs}}" as="m" hint-placeholder-count="2"><span style="padding:11px 15px;border-radius:6px 20px 20px 20px;background:#F2F0EB;font-size:15px;line-height:1.45;overflow-wrap:anywhere">{{m}}</span></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="flex:none;margin:0 10px;display:flex;align-items:center;gap:8px;padding:10px 10px 30px;background:#FFFFFF;border-top:1px solid #ECEAE4">
+<button type="button" aria-label="Attach file" style="flex:none;width:46px;height:46px;border:0;border-radius:50%;background:#EFEDE7;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+<label style="flex:1;display:flex;align-items:center;height:46px;padding:0 16px;border-radius:999px;background:#EFEDE7"><input type="text" aria-label="Message" placeholder="Message the team" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font-family:inherit;font-size:15px"></label>
+<button type="button" aria-label="Send" style="flex:none;width:46px;height:46px;border:0;border-radius:50%;background:#FFD43B;color:#121212;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var sm = { who: 'Sandra Mike', ini: 'SM', bg: '#FFD43B', fg: '#121212' };
+    var mu = { who: 'Shittu Mubaraq', ini: 'SM', bg: '#121212', fg: '#FFD43B' };
+    function g(p, time, msgs) { return Object.assign({ time: time, msgs: msgs }, p); }
+    return { groups: [
+      g(sm, '9:46 AM', ['Hi @Shittu Mubaraq', 'Can we start with the SMTP for this site? https://queenbodysecret.com/']),
+      g(mu, '10:07 AM', ['Good morning,', 'What do you want to achieve?']),
+      g(sm, '11:01 AM', ['@Idiong Idongesit', 'What is the update?'])
+    ] };
+  }
+}
+</script>
+</body>
+</html>

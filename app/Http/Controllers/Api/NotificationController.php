@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Support\NotificationLinks;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $notifications = Notification::where('user_id', $request->user()->id)
+        $user = $request->user();
+        $notifications = Notification::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();
 
-        return response()->json($notifications);
+        // Each item says which page it is about.
+        return response()->json($notifications->map(fn (Notification $n) => $n->toArray() + [
+            'link' => NotificationLinks::for($user, (string) $n->type, $n->reference_type, $n->reference_id),
+        ]));
     }
 
     public function markRead(Request $request, Notification $notification)

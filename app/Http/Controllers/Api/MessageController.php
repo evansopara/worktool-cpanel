@@ -7,13 +7,28 @@ use App\Models\ProjectMessage;
 use App\Models\DirectMessage;
 use App\Models\GeneralChannelMessage;
 use App\Models\MessageReadReceipt;
+use App\Models\Project;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class MessageController extends Controller
 {
+    /** Project chats are for the people who can see the project. */
+    private function requireProject(Request $request, $projectId): Project
+    {
+        return Project::visibleTo($request->user())->findOrFail($projectId);
+    }
+
+    private static function isLead(User $user): bool
+    {
+        return in_array($user->role, ['operations_manager', 'team_lead'], true);
+    }
+
     // Project messages
     public function projectMessages(Request $request, $projectId)
     {
+        $this->requireProject($request, $projectId);
         $messages = ProjectMessage::with('sender')
             ->where('project_id', $projectId)
             ->orderBy('created_at', 'asc')
@@ -24,6 +39,7 @@ class MessageController extends Controller
 
     public function sendProjectMessage(Request $request, $projectId)
     {
+        $this->requireProject($request, $projectId);
         $data = $request->validate([
             'content' => 'required|string',
             'parent_id' => 'nullable|integer|exists:project_messages,id',
@@ -100,10 +116,15 @@ class MessageController extends Controller
     // General channel
     public function generalMessages(Request $request)
     {
+        // The newest 100, oldest first. (Taking the first 100 by date showed
+        // the channel's oldest messages and hid everything newer.)
         $messages = GeneralChannelMessage::with('sender')
-            ->orderBy('created_at', 'asc')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(100)
-            ->get();
+            ->get()
+            ->reverse()
+            ->values();
 
         return response()->json($messages);
     }
@@ -118,6 +139,62 @@ class MessageController extends Controller
         ]);
 
         return response()->json($message->load('sender'), 201);
+    }
+
+    /** Delete your own direct message (for both people). */
+    public function deleteDirectMessage(Request $request, DirectMessage $message)
+    {
+        if ($message->sender_id !== $request->user()->id) {
+            abort(403, 'You can only delete your own messages.');
+        }
+        $message->delete();
+        return response()->json(['message' => 'Message deleted.']);
+    }
+
+    /** Delete a general channel message: your own, or any as a Team Lead or Operations Manager. */
+    public function deleteGeneralMessage(Request $request, GeneralChannelMessage $message)
+    {
+        if ($message->sender_id !== $request->user()->id && !self::isLead($request->user())) {
+            abort(403, 'You can only delete your own messages.');
+        }
+        $message->delete();
+        return response()->json(['message' => 'Message deleted.']);
+    }
+
+    /**
+     * Pin or unpin a message (body: pinned true/false). Direct chats: either
+     * person. Project chats: anyone who can see the project. General channel:
+     * Team Leads and Operations Managers.
+     */
+    public function pin(Request $request, string $type, int $id)
+    {
+        $user = $request->user();
+        $pinned = $request->validate(['pinned' => 'required|boolean'])['pinned'];
+
+        $message = match ($type) {
+            'direct' => DirectMessage::findOrFail($id),
+            'project' => ProjectMessage::findOrFail($id),
+            'general' => GeneralChannelMessage::findOrFail($id),
+            default => abort(404),
+        };
+
+        $allowed = match ($type) {
+            'direct' => in_array($user->id, [(int) $message->sender_id, (int) $message->receiver_id], true),
+            'project' => Project::visibleTo($user)->whereKey($message->project_id)->exists(),
+            'general' => self::isLead($user),
+        };
+        if (!$allowed) {
+            abort(403, $type === 'general' ? 'Only Team Leads and Operations Managers can pin in the general channel.' : 'You can’t pin messages in this chat.');
+        }
+        // Code can go live before the SQL update adds the column.
+        if (!Schema::hasColumn($message->getTable(), 'is_pinned')) {
+            abort(422, 'Pinning isn’t switched on yet (database update pending).');
+        }
+
+        // Keep updated_at: it isn't an edit.
+        $message->timestamps = false;
+        $message->update(['is_pinned' => $pinned]);
+        return response()->json($message);
     }
 
     public function reactToGeneralMessage(Request $request, GeneralChannelMessage $message)
@@ -143,6 +220,55 @@ class MessageController extends Controller
     }
 
     // Conversations list (for DM sidebar)
+    /**
+     * GET /messages/inbox — the Inbox conversation list (Inbox artboard):
+     * the general channel, the user's project chats and their direct
+     * messages, each with its last message, newest first.
+     */
+    public function inbox(Request $request)
+    {
+        $user = $request->user();
+        $preview = fn ($m) => $m ? [
+            'content' => $m->content,
+            'sender' => $m->sender ? trim("{$m->sender->first_name} {$m->sender->last_name}") : null,
+            'mine' => $m->sender_id === $user->id,
+            'at' => $m->created_at?->toIso8601String(),
+        ] : null;
+
+        $general = GeneralChannelMessage::with('sender')->latest('id')->first();
+
+        $projects = Project::visibleTo($user)->get(['id', 'name']);
+        $lastIds = ProjectMessage::whereIn('project_id', $projects->pluck('id'))
+            ->selectRaw('project_id, MAX(id) as id')->groupBy('project_id')->pluck('id', 'project_id');
+        $lastProject = ProjectMessage::with('sender')->whereIn('id', $lastIds->values())->get()->keyBy('project_id');
+
+        // One row per person the user has talked to: the latest message and
+        // how many of theirs are unread.
+        $latestDm = DirectMessage::selectRaw('MAX(id) as id, CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_id', [$user->id])
+            ->where(fn ($q) => $q->where('sender_id', $user->id)->orWhere('receiver_id', $user->id))
+            ->groupBy('other_id')
+            ->pluck('id', 'other_id');
+        $dmRows = DirectMessage::with('sender')->whereIn('id', $latestDm->values())->get()->keyBy('id');
+        $unread = DirectMessage::where('receiver_id', $user->id)->where('read', false)
+            ->selectRaw('sender_id, COUNT(*) as n')->groupBy('sender_id')->pluck('n', 'sender_id');
+
+        return response()->json([
+            'general' => ['last' => $preview($general)],
+            'projects' => $projects
+                ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'last' => $preview($lastProject->get($p->id))])
+                ->sortByDesc(fn ($p) => $p['last']['at'] ?? '')
+                ->values(),
+            'direct' => $latestDm
+                ->map(fn ($id, $otherId) => [
+                    'user_id' => (int) $otherId,
+                    'last' => $preview($dmRows->get($id)),
+                    'unread' => (int) ($unread[$otherId] ?? 0),
+                ])
+                ->sortByDesc(fn ($d) => $d['last']['at'] ?? '')
+                ->values(),
+        ]);
+    }
+
     public function conversations(Request $request)
     {
         $userId = $request->user()->id;

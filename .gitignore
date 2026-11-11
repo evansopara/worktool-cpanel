@@ -1,0 +1,13 @@
+# Frontend build output and installed packages. frontend/.gitignore covers
+# these too, but this one also applies on branches without the frontend.
+# (vendor/ and public/ are committed on purpose: the server deploys from git.)
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/.env*.local
+/frontend/tsconfig.tsbuildinfo
+/frontend/next-env.d.ts
+
+# Root Laravel tooling
+/node_modules/
+/.phpunit.result.cache

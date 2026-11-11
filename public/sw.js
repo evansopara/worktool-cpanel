@@ -19,11 +19,25 @@ self.addEventListener('push', (event) => {
     icon: data.icon || '/icon-192.png',
     badge: '/icon-192.png',
     data: { url: data.url || '/dashboard' },
+    vibrate: [200, 100, 200],
   };
   // Same tag as the in-app poller's alert, so the browser shows one, not two.
-  if (data.tag) options.tag = data.tag;
+  // renotify makes a replacement alert again instead of swapping in silently.
+  if (data.tag) {
+    options.tag = data.tag;
+    options.renotify = true;
+  }
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    (async () => {
+      await self.registration.showNotification(title, options);
+      // Tell any open Worktool window too: Android may not pop a
+      // notification up over the app it came from, so the app can show its
+      // own alert (used for the Settings test notification).
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      windows.forEach((w) => w.postMessage({ type: 'push', title, body: options.body, tag: data.tag || null }));
+    })()
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {

@@ -316,6 +316,24 @@ class AuthController extends Controller
         return response()->json($user);
     }
 
+    /**
+     * Set someone's daily break start ("14:00", 24-hour; the break lasts an
+     * hour). Operations Managers and Team Leads only (decided 2026-10-30).
+     */
+    public function updateBreak(Request $request, User $user)
+    {
+        $this->authorizeRole($request, ['operations_manager', 'team_lead']);
+
+        $data = $request->validate([
+            'break_one_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+        ], [
+            'break_one_time.regex' => 'Give the break start as a time, e.g. 14:00.',
+        ]);
+
+        $user->update(['break_one_time' => $data['break_one_time'] ?? null]);
+        return response()->json($user);
+    }
+
     // Admin: generate password reset token for a user
     public function resetPasswordToken(Request $request, User $user)
     {
