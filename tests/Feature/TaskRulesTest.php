@@ -80,6 +80,7 @@ class TaskRulesTest extends TestCase
         ])->assertCreated()->json('id');
 
         $task = Task::find($id);
+        $this->assertTrue($task->lock_early_start, 'new tasks are locked until their start time by default');
         $this->assertSame([TaskEvent::CREATED, TaskEvent::ASSIGNED], $this->types($task));
         $this->assertSame(180, $task->original_estimate_minutes);
         $this->assertSame('2026-10-27 12:00:00', $task->original_deadline->format('Y-m-d H:i:s'));

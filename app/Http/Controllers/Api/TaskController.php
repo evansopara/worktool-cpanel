@@ -201,6 +201,9 @@ class TaskController extends Controller
         $this->requireDeadlineAfterStart($data['start_date'] ?? null, $data['deadline'] ?? null);
 
         $data['assigned_by'] = $user->id;
+        // New tasks can't be started before their scheduled time unless the
+        // manager unticks it (default since 2026-11-11).
+        $data['lock_early_start'] ??= true;
         if (!empty($data['description'])) {
             $data['instructions_updated_at'] = now();
         }

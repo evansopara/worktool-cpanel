@@ -106,6 +106,16 @@ class PerformanceTest extends TestCase
         $this->getJson('/api/performance/attendance/today')->assertOk()->assertJson(['sent_at' => null]);
     }
 
+    public function test_managers_see_the_send_time_once_it_has_fired(): void
+    {
+        $this->fireAt();
+        Sanctum::actingAs($this->ops);
+        $today = $this->getJson('/api/performance/attendance/today')->assertOk();
+        $this->assertNotNull($today->json('sent_at'));
+        $this->assertSame(4, $today->json('expected') + $today->json('skipped'));
+        $this->assertNotNull($this->getJson('/api/performance/overview')->assertOk()->json('today.sent_at'));
+    }
+
     public function test_everyone_but_team_leads_gets_the_same_check_and_leave_is_skipped(): void
     {
         $this->staff->forceFill(['email' => 'victor@example.com'])->save();

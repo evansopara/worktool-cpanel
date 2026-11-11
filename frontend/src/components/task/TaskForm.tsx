@@ -37,7 +37,7 @@ const EMPTY: FormState = {
   deadline: '',
   working_hours: '',
   working_minutes: '',
-  lock_early_start: false,
+  lock_early_start: true,
   requires_links: false,
   reason: '',
 };
@@ -237,7 +237,9 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
           </Field>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3">
+        {/* Hidden for now (2026-11-11): new tasks are always locked until their
+            scheduled start; an existing task keeps its setting when edited. */}
+        <label className="hidden cursor-pointer items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3">
           <input type="checkbox" checked={form.lock_early_start} onChange={(e) => set('lock_early_start', e.target.checked)} className="size-[18px] accent-ink" />
           <span className="flex flex-col">
             <span className="text-sm font-semibold">Can’t start before scheduled time</span>

@@ -133,7 +133,8 @@ class PerformanceController extends Controller
         }
         $checks = AttendanceCheck::with('user:id,first_name,last_name,username,role')->where('date', $day->date)->get();
         $answered = $checks->whereIn('status', [AttendanceCheck::ANSWERED, AttendanceCheck::LATE]);
-        $out += [
+        // array_merge, not +=: += keeps the sent_at => null set above.
+        $out = array_merge($out, [
             'sent_at' => $day->send_at->toIso8601String(),
             'answer_by' => $day->send_at->copy()->addMinutes(Attendance::ON_TIME_MINUTES)->toIso8601String(),
             'expected' => $checks->where('status', '!=', AttendanceCheck::SKIPPED)->count(),
@@ -141,7 +142,7 @@ class PerformanceController extends Controller
             'waiting' => $checks->where('status', AttendanceCheck::PENDING)->count(),
             'missed' => $checks->where('status', AttendanceCheck::MISSED)->count(),
             'skipped' => $checks->where('status', AttendanceCheck::SKIPPED)->count(),
-        ];
+        ]);
         if ($withRows) {
             $order = [AttendanceCheck::ANSWERED => 0, AttendanceCheck::LATE => 0, AttendanceCheck::PENDING => 1, AttendanceCheck::MISSED => 2, AttendanceCheck::SKIPPED => 3];
             $out['rows'] = $checks
