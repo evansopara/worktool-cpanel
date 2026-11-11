@@ -65,7 +65,7 @@ function seed(): MockTask[] {
     t({ id: 3, title: 'Work on Contourfajasafrica email', status: 'deadline_missed', project: projects[1], start: -4440, due: -4320, pendingExt: true }),
     t({ id: 4, title: 'Opt-in copy, headlines and Cart Abandonment for Money Game Wealth Launchpad Course', status: 'deadline_missed',
       project: projects[3], assignee: people.ashe, start: -4500, due: -4320, estimate: 180, description: 'Write the opt-in page copy and three abandonment emails.' }),
-    t({ id: 5, title: 'Get Ad creatives that is ready', status: 'review', project: projects[2], assignee: people.jamiu, start: -7000, due: -6980, estimate: 20, logged: 900 }),
+    t({ id: 5, title: 'Get Ad creatives that is ready', status: 'review', project: projects[2], assignee: people.jamiu, start: -7000, due: -6980, estimate: 20, logged: 900, links: true, submitted: ['https://drive.google.com/drive/folders/ad-creatives-final', 'https://figma.com/file/ads'] }),
     t({ id: 6, title: 'Monthly report', status: 'completed', start: -9000, due: -8800, logged: 6400 }),
   ];
   const titles = ['Homepage hero section', 'SMTP setup and test emails', 'Product page layout', 'Checkout flow review', 'Mobile menu fixes', 'Client walkthrough prep',
@@ -203,7 +203,7 @@ function listItem(t: MockTask) {
     assignee: { id: t.assignee.id, name: name(t.assignee) }, assigned_by: { id: t.assigner.id, name: name(t.assigner) },
     start_date: iso(t.start), deadline: iso(t.due), estimate_minutes: t.estimate, logged_seconds: logged(t),
     is_timer_running: t.running, timer_start_time: null, has_instructions: !!t.description,
-    instructions_preview: t.description ? t.description.replace(/\s+/g, ' ').slice(0, 160) : null, pending_extension: t.pendingExt, lock_early_start: t.lock, requires_links: !!t.links,
+    instructions_preview: t.description ? t.description.replace(/\s+/g, ' ').slice(0, 160) : null, pending_extension: t.pendingExt, lock_early_start: t.lock, requires_links: !!t.links, submission_links: t.submitted ?? [],
   };
 }
 

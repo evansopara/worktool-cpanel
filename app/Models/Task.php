@@ -247,6 +247,8 @@ class Task extends Model
             'pending_extension' => (bool) ($this->pending_extensions_count ?? 0),
             'lock_early_start' => (bool) $this->lock_early_start,
             'requires_links' => (bool) $this->requires_links,
+            // Shown on managers' rows and cards once the work is submitted.
+            'submission_links' => $this->submission_links ?: [],
         ];
     }
 

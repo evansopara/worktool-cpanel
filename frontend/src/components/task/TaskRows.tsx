@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, Pause, Pencil, Play, Trash2 } from 'lucide-react';
+import { FileText, Link2, Pause, Pencil, Play, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconButton, ScheduleInline, StatusPill } from '@/components/wc';
 import { DEADLINE_PASSED, deadlinePassed, fmtClock, notStarted, fmtMinutes, fmtTime, fmtWhen, isMissed, statusInfo, type TaskListItem } from '@/lib/tasks';
@@ -35,6 +35,31 @@ function staffNote(t: TaskListItem): { text: string; tone: string } | null {
   if (t.status === 'review') return { text: passed ? 'Submitted for review.' : 'Submitted for review. You can still restart the timer or resubmit.', tone: 'text-review' };
   return null;
 }
+
+/** Staff still have to add links before this task can be submitted. */
+const needsLinks = (t: TaskListItem) => t.requires_links && !['review', 'completed'].includes(t.status);
+
+/** The first submitted link (and how many more), for managers' rows and cards. */
+function SubmittedLink({ t, className }: { t: TaskListItem; className?: string }) {
+  const [first, ...rest] = t.submission_links ?? [];
+  if (!first) return null;
+  return (
+    <span className={cn('flex min-w-0 items-center gap-1.5 text-xs font-semibold text-review', className)}>
+      <Link2 className="size-[13px] shrink-0" strokeWidth={2} aria-hidden="true" />
+      <a href={first} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-review underline underline-offset-2">
+        {first.replace(/^https?:\/\//, '')}
+      </a>
+      {rest.length > 0 && <span className="shrink-0 text-ink-3">+{rest.length} more</span>}
+    </span>
+  );
+}
+
+const linkHint = (
+  <span className="flex items-center gap-1.5 text-xs text-ink-3">
+    <Link2 className="size-[13px]" strokeWidth={2} aria-hidden="true" />
+    Link needed to submit
+  </span>
+);
 
 const oneWordPerLine = (name?: string | null) => (name ?? '—').split(' ').join('\n');
 
@@ -103,12 +128,15 @@ export function ManagerTaskTable({
                 t={t}
                 onOpen={onOpen}
                 extra={
-                  t.has_instructions && (
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-2">
-                      <FileText className="size-[13px]" strokeWidth={2} aria-hidden="true" />
-                      Has instructions
-                    </span>
-                  )
+                  <>
+                    {t.has_instructions && (
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-2">
+                        <FileText className="size-[13px]" strokeWidth={2} aria-hidden="true" />
+                        Has instructions
+                      </span>
+                    )}
+                    <SubmittedLink t={t} />
+                  </>
                 }
               />
               <StatusCell t={t} />
@@ -219,16 +247,19 @@ export function StaffTaskTable({
                   t={t}
                   onOpen={onOpen}
                   extra={
-                    t.has_instructions && (
-                      <button
-                        type="button"
-                        onClick={() => actions.read(toActionTask(t))}
-                        className="flex cursor-pointer items-center gap-1.5 self-start border-0 bg-transparent p-0 font-ui text-xs font-semibold text-ink-2 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink"
-                      >
-                        <FileText className="size-[13px]" strokeWidth={2} aria-hidden="true" />
-                        Instructions · <span className="underline">Read</span>
-                      </button>
-                    )
+                    <>
+                      {t.has_instructions && (
+                        <button
+                          type="button"
+                          onClick={() => actions.read(toActionTask(t))}
+                          className="flex cursor-pointer items-center gap-1.5 self-start border-0 bg-transparent p-0 font-ui text-xs font-semibold text-ink-2 outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ink"
+                        >
+                          <FileText className="size-[13px]" strokeWidth={2} aria-hidden="true" />
+                          Instructions · <span className="underline">Read</span>
+                        </button>
+                      )}
+                      {needsLinks(t) && linkHint}
+                    </>
                   }
                 />
                 <StatusCell t={t} />
@@ -291,7 +322,7 @@ function scheduleLines(start: string | null, deadline: string | null): { day: st
  * One task on phones (Tasks and Home): project and title on the left with the
  * actions under them; status, timer and schedule on the right.
  */
-function TaskCard({ t, since, onOpen, meta, actions, footer, shaded }: { t: TaskListItem; since: number; onOpen: (id: number) => void; meta?: string; actions: React.ReactNode; footer?: React.ReactNode; shaded?: boolean }) {
+function TaskCard({ t, since, onOpen, meta, hint, actions, footer, shaded }: { t: TaskListItem; since: number; onOpen: (id: number) => void; meta?: string; hint?: React.ReactNode; actions: React.ReactNode; footer?: React.ReactNode; shaded?: boolean }) {
   const s = statusInfo(t.status);
   const missed = isMissed(t);
   const when = scheduleLines(t.start_date, t.deadline);
@@ -308,6 +339,7 @@ function TaskCard({ t, since, onOpen, meta, actions, footer, shaded }: { t: Task
               {t.title}
             </button>
           </h2>
+          {hint}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <StatusPill tone={s.tone} className="text-[11px] tracking-[0.06em] uppercase">
@@ -352,6 +384,7 @@ export function ManagerTaskCard({
       since={since}
       onOpen={onOpen}
       meta={t.assignee?.name ?? 'Unassigned'}
+      hint={<SubmittedLink t={t} className="text-[13px]" />}
       actions={
         <>
           <button type="button" onClick={() => onEdit(t.id)} className={cn(pillButton, 'bg-stone text-ink')}>
@@ -388,6 +421,7 @@ export function StaffTaskCard({
       since={since}
       onOpen={onOpen}
       shaded={notStarted(t)}
+      hint={needsLinks(t) && linkHint}
       actions={t.status === 'completed' ? <span className="py-3 text-[13px] font-semibold text-done">Completed · {fmtClock(t.logged_seconds)} logged</span> : <TimerButtons t={t} actions={actions} size="lg" />}
       footer={
         (note || missedNoRequest) && (

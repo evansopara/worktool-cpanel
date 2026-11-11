@@ -30,6 +30,8 @@ export type TaskListItem = {
   lock_early_start: boolean;
   /** Staff must add links to their work to submit. */
   requires_links: boolean;
+  /** Links sent with the latest submission (empty until submitted). */
+  submission_links: string[];
 };
 
 export type TaskPage = { data: TaskListItem[]; meta: { total: number; page: number; per_page: number; last_page: number } };

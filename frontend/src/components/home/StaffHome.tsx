@@ -197,6 +197,7 @@ function CurrentTask({ task: t, loading, since, ws }: { task: TaskListItem | nul
           </h2>
           <span className="text-[12.5px] text-on-dark-2 lg:text-[13px]">
             {t.project?.name} · est. {fmtMinutes(t.estimate_minutes)}
+            {t.requires_links && !['review', 'completed'].includes(t.status) && ' · link needed to submit'}
           </span>
         </div>
         <span className="shrink-0 rounded-full bg-dark-2 px-[9px] py-1 text-[11.5px] font-semibold text-on-ink lg:px-2.5 lg:text-xs">{s.label}</span>

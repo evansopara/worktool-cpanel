@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { User } from '@/types';
@@ -21,7 +21,6 @@ import { useTaskActions } from './useTaskActions';
 export function useTaskWorkspace(user: User) {
   const manager = MANAGER_ROLES.includes(user.role);
   const qc = useQueryClient();
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const actions = useTaskActions();
@@ -35,7 +34,10 @@ export function useTaskWorkspace(user: User) {
     const next = new URLSearchParams(params.toString());
     if (id === null) next.delete('task');
     else next.set('task', String(id));
-    router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
+    // The native History API updates ?task= (and useSearchParams) at once.
+    // router.replace first fetched the page's data from the server, so on a
+    // slow connection the panel took seconds to open or close.
+    window.history.replaceState(null, '', next.size ? `${pathname}?${next}` : pathname);
   };
 
   const remove = useMutation({
