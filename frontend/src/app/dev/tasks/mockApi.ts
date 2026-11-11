@@ -20,6 +20,8 @@ type MockTask = {
   read: boolean;
   lock: boolean;
   pendingExt: boolean;
+  links?: boolean;
+  submitted?: string[] | null;
 };
 
 const MIN = 60_000;
@@ -57,7 +59,7 @@ function seed(): MockTask[] {
     ...o,
   });
   const list = [
-    t({ id: 1, title: '[Website task title]', status: 'todo', start: 151, due: 330, estimate: 179, read: false,
+    t({ id: 1, title: '[Website task title]', status: 'todo', links: true, start: 151, due: 330, estimate: 179, read: false,
       description: 'Build the new homepage hero from the Figma file.\n\n1. Use the brand fonts.\n2. Link the CTA to /contact.\n3. Done = merged and checked on mobile.' }),
     t({ id: 2, title: 'Logo files for TopMart', status: 'in_progress', project: projects[4], start: -30, due: 90, estimate: 120, logged: 2400 }),
     t({ id: 3, title: 'Work on Contourfajasafrica email', status: 'deadline_missed', project: projects[1], start: -4440, due: -4320, pendingExt: true }),
@@ -201,14 +203,14 @@ function listItem(t: MockTask) {
     assignee: { id: t.assignee.id, name: name(t.assignee) }, assigned_by: { id: t.assigner.id, name: name(t.assigner) },
     start_date: iso(t.start), deadline: iso(t.due), estimate_minutes: t.estimate, logged_seconds: logged(t),
     is_timer_running: t.running, timer_start_time: null, has_instructions: !!t.description,
-    instructions_preview: t.description ? t.description.replace(/\s+/g, ' ').slice(0, 160) : null, pending_extension: t.pendingExt, lock_early_start: t.lock,
+    instructions_preview: t.description ? t.description.replace(/\s+/g, ' ').slice(0, 160) : null, pending_extension: t.pendingExt, lock_early_start: t.lock, requires_links: !!t.links,
   };
 }
 
 function detail(t: MockTask) {
   return {
     ...listItem(t), description: t.description, project_id: t.project.id, assignee_id: t.assignee.id, assignee: t.assignee, assigner: t.assigner,
-    working_hours: Math.floor(t.estimate / 60), working_minutes: t.estimate % 60,
+    working_hours: Math.floor(t.estimate / 60), working_minutes: t.estimate % 60, submission_links: t.submitted ?? null,
     pending_extension: t.pendingExt ? extensions().find((r) => r.task_id === t.id) ?? null : null,
   };
 }
@@ -499,6 +501,9 @@ export function mockAdapter(viewerId: number): AxiosAdapter {
     }
     if (method === 'post' && (m = url.match(/^\/tasks\/(\d+)\/(timer\/stop|submit)$/))) {
       const t = find(m[1]);
+      const links = (JSON.parse(String(config.data ?? '{}')) as { links?: string[] }).links;
+      if (m[2] === 'submit' && t.links && !links?.length) fail(config, 422, { code: 'links_required', message: 'Add a link to your work before you submit this task.' });
+      if (m[2] === 'submit' && links?.length) t.submitted = links.map((l) => (/^https?:\/\//.test(l) ? l : `https://${l}`));
       t.logged = logged(t);
       t.running = false;
       t.status = m[2] === 'submit' ? 'review' : t.status === 'deadline_missed' ? t.status : 'on_hold';

@@ -234,6 +234,46 @@ class TaskRulesTest extends TestCase
         ], $this->types($task));
     }
 
+    public function test_tasks_that_need_links_cannot_be_submitted_without_one(): void
+    {
+        Sanctum::actingAs($this->manager);
+        $id = $this->postJson('/api/tasks', [
+            'title' => 'Landing page', 'project_id' => $this->projectId, 'assignee_id' => $this->staff->id, 'requires_links' => true,
+        ])->assertCreated()->json('id');
+        $this->assertTrue(Task::find($id)->requires_links);
+
+        Sanctum::actingAs($this->staff);
+        $this->postJson("/api/tasks/{$id}/submit")->assertStatus(422)->assertJson(['code' => 'links_required']);
+        $this->postJson("/api/tasks/{$id}/submit", ['links' => ['  ', '']])->assertStatus(422)->assertJson(['code' => 'links_required']);
+        $this->postJson("/api/tasks/{$id}/submit", ['links' => ['done']])->assertStatus(422)->assertJsonValidationErrors('links.0');
+        $this->assertSame('todo', Task::find($id)->status);
+
+        $this->postJson("/api/tasks/{$id}/submit", ['links' => ['drive.google.com/file/abc', 'https://figma.com/x', 'https://figma.com/x']])->assertOk();
+        $task = Task::find($id);
+        $this->assertSame('review', $task->status);
+        $this->assertSame(['https://drive.google.com/file/abc', 'https://figma.com/x'], $task->submission_links);
+        $submitted = TaskEvent::where('task_id', $id)->where('type', TaskEvent::SUBMITTED)->firstOrFail();
+        $this->assertSame($task->submission_links, $submitted->meta['links']);
+    }
+
+    public function test_tasks_without_the_option_still_submit_with_one_tap(): void
+    {
+        $task = $this->task();
+        Sanctum::actingAs($this->staff);
+        $this->postJson("/api/tasks/{$task->id}/submit")->assertOk();
+        $this->assertNull($task->fresh()->submission_links);
+    }
+
+    public function test_turning_the_option_on_is_recorded_in_the_history(): void
+    {
+        $task = $this->task();
+        Sanctum::actingAs($this->manager);
+        $this->patchJson("/api/tasks/{$task->id}", ['requires_links' => true])->assertOk();
+        $edit = TaskEvent::where('task_id', $task->id)->where('type', TaskEvent::FIELD_EDITED)->firstOrFail();
+        $this->assertSame('requires_links', $edit->meta['field']);
+        $this->assertTrue($edit->to['value']);
+    }
+
     public function test_old_pages_submit_by_editing_the_status(): void
     {
         $task = $this->task();

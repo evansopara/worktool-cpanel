@@ -96,5 +96,6 @@ trait CreatesTaskTables
         if ($withHistoryMigration) {
             $this->artisan('migrate', ['--path' => 'database/migrations/2026_10_27_000001_add_task_history_and_rules.php']);
         }
+        $this->artisan('migrate', ['--path' => 'database/migrations/2026_11_11_000001_add_submission_links_to_tasks.php']);
     }
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Pause, Pencil, Play, X } from 'lucide-react';
+import { FileText, Link2, Pause, Pencil, Play, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Avatar, Drawer, DrawerClose, Linkify, StatusPill, Tabs } from '@/components/wc';
@@ -119,6 +119,7 @@ function TaskPanel({
     assignedBy: creator,
     deadline: t.deadline,
     estimateMinutes: t.estimate_minutes,
+    requiresLinks: t.requires_links,
   };
   const eventCount = historyQuery.data?.data.length;
 
@@ -135,6 +136,11 @@ function TaskPanel({
             {t.pending_extension && (
               <StatusPill tone="pending" size="md">
                 Extension pending
+              </StatusPill>
+            )}
+            {t.requires_links && !['completed', 'review'].includes(t.status) && (
+              <StatusPill tone="todo" size="md">
+                Links needed to submit
               </StatusPill>
             )}
           </div>
@@ -220,6 +226,23 @@ function TaskPanel({
               <p className="m-0 text-[14.5px] text-ink-2">No instructions were added to this task.</p>
             )}
           </section>
+          {!!t.submission_links?.length && (
+            <section aria-label="Submitted work" className="flex flex-col gap-2 rounded-[20px] bg-review-tint px-[18px] py-4">
+              <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.07em] text-review">
+                <Link2 className="size-[15px]" strokeWidth={2} aria-hidden="true" />
+                Submitted work
+              </span>
+              <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                {t.submission_links.map((href) => (
+                  <li key={href} className="min-w-0">
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="block truncate text-[14.5px] font-semibold text-review underline underline-offset-2">
+                      {href.replace(/^https?:\/\//, '')}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <dl className="m-0 grid grid-cols-2 gap-2">
             <Fact k="Assignee" v={assignee} />
             <Fact k="Created by" v={creator || '—'} />

@@ -19,6 +19,7 @@ export function toActionTask(t: TaskListItem): ActionTask {
     assignedBy: t.assigned_by?.name,
     deadline: t.deadline,
     estimateMinutes: t.estimate_minutes,
+    requiresLinks: t.requires_links,
   };
 }
 

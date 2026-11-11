@@ -22,6 +22,7 @@ type FormState = {
   working_hours: string;
   working_minutes: string;
   lock_early_start: boolean;
+  requires_links: boolean;
   reason: string;
 };
 
@@ -37,6 +38,7 @@ const EMPTY: FormState = {
   working_hours: '',
   working_minutes: '',
   lock_early_start: false,
+  requires_links: false,
   reason: '',
 };
 
@@ -68,6 +70,7 @@ function fromTask(t: TaskDetail): FormState {
     working_hours: t.working_hours ? String(t.working_hours) : '',
     working_minutes: t.working_minutes ? String(t.working_minutes) : '',
     lock_early_start: !!t.lock_early_start,
+    requires_links: !!t.requires_links,
     reason: '',
   };
 }
@@ -131,6 +134,7 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
         working_hours: form.working_hours ? Number(form.working_hours) : 0,
         working_minutes: form.working_minutes ? Number(form.working_minutes) : 0,
         lock_early_start: form.lock_early_start,
+        requires_links: form.requires_links,
       };
       if (task) {
         delete data.project_id; // a task stays in its project
@@ -238,6 +242,14 @@ function TaskFormBody({ task, onClose }: { task: TaskDetail | null; onClose: () 
           <span className="flex flex-col">
             <span className="text-sm font-semibold">Can’t start before scheduled time</span>
             <span className="text-[12.5px] text-ink-3">Start shows “Opens at …” until then</span>
+          </span>
+        </label>
+
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3">
+          <input type="checkbox" checked={form.requires_links} onChange={(e) => set('requires_links', e.target.checked)} className="size-[18px] accent-ink" />
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold">Staff must add links to submit</span>
+            <span className="text-[12.5px] text-ink-3">Submit asks for a link to the finished work before it goes for review</span>
           </span>
         </label>
 

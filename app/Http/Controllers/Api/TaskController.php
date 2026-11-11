@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Tasks, timers and requests. Rules follow design/HANDOFF_SPEC.md §5 and §8:
@@ -187,6 +188,7 @@ class TaskController extends Controller
             'working_minutes' => 'nullable|integer|min:0|max:59',
             'progress' => 'nullable|integer|min:0|max:100',
             'lock_early_start' => 'nullable|boolean',
+            'requires_links' => 'nullable|boolean',
         ]);
 
         if (!empty($data['assignee_id'])) {
@@ -275,6 +277,7 @@ class TaskController extends Controller
             'working_minutes' => 'nullable|integer|min:0|max:59',
             'progress' => 'nullable|integer|min:0|max:100',
             'lock_early_start' => 'nullable|boolean',
+            'requires_links' => 'nullable|boolean',
             'reason' => 'nullable|string|max:1000',
         ]);
         $reason = trim((string) ($data['reason'] ?? '')) ?: null;
@@ -374,6 +377,7 @@ class TaskController extends Controller
             'estimate_minutes' => fn (Task $t) => $t->estimateMinutes(),
             'progress' => fn (Task $t) => $t->progress,
             'lock_early_start' => fn (Task $t) => (bool) $t->lock_early_start,
+            'requires_links' => fn (Task $t) => (bool) $t->requires_links,
         ];
         foreach ($fields as $field => $get) {
             $old = $get($before);
@@ -526,17 +530,25 @@ class TaskController extends Controller
         $task->markDeadlineMissed();
         $this->requireBeforeDeadline($task);
 
-        DB::transaction(function () use ($task, $user) {
+        $links = $this->submissionLinks($request);
+        if ($task->requires_links && !$links) {
+            throw new TaskRuleException('links_required', 'Add a link to your work before you submit this task.');
+        }
+
+        DB::transaction(function () use ($task, $user, $links) {
             $task->stopRunningTimer($user->id);
             $from = $task->status;
             $task->update([
                 'status' => 'review',
                 'submitted_at' => now(),
                 'submitted_by' => $user->id,
+                // A resubmission without links keeps the earlier ones.
+                'submission_links' => $links ?: $task->submission_links,
             ]);
-            TaskEvent::record($task, TaskEvent::SUBMITTED, $user->id, ['status' => $from], ['status' => 'review'], [
+            TaskEvent::record($task, TaskEvent::SUBMITTED, $user->id, ['status' => $from], ['status' => 'review'], array_filter([
                 'logged_seconds' => $task->loggedSeconds(),
-            ]);
+                'links' => $links ?: null,
+            ], fn ($v) => $v !== null));
         });
 
         foreach ($this->managerIds($task, $user->id) as $managerId) {
@@ -545,6 +557,32 @@ class TaskController extends Controller
         }
 
         return response()->json($task->fresh()->load(['project', 'assignee']));
+    }
+
+    /**
+     * `links` sent with a submission: trimmed, blanks and repeats dropped,
+     * https:// added when left off. Anything that still isn't a web address
+     * is refused, so "done" can't stand in for a link.
+     */
+    private function submissionLinks(Request $request): array
+    {
+        $request->validate(['links' => 'nullable|array|max:10', 'links.*' => 'nullable|string|max:2048']);
+        $links = [];
+        foreach ((array) $request->input('links', []) as $i => $raw) {
+            $link = trim((string) $raw);
+            if ($link === '') {
+                continue;
+            }
+            if (!preg_match('#^https?://#i', $link)) {
+                $link = 'https://' . $link;
+            }
+            $host = parse_url($link, PHP_URL_HOST);
+            if (!filter_var($link, FILTER_VALIDATE_URL) || !$host || !str_contains($host, '.')) {
+                throw ValidationException::withMessages(["links.{$i}" => "\"{$raw}\" isn't a link. Paste the full address, like https://drive.google.com/…"]);
+            }
+            $links[] = $link;
+        }
+        return array_values(array_unique($links));
     }
 
     /** Records that the assignee opened the instructions (internal only). */

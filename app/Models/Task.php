@@ -23,6 +23,7 @@ class Task extends Model
         'submitted_at', 'submitted_by',
         'original_deadline', 'original_estimate_minutes', 'instructions_updated_at',
         'lock_early_start', 'estimate_warned_at', 'estimate_reached_at',
+        'requires_links', 'submission_links',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class Task extends Model
         'submitted_at' => 'datetime', 'original_deadline' => 'datetime',
         'instructions_updated_at' => 'datetime', 'lock_early_start' => 'boolean',
         'estimate_warned_at' => 'datetime', 'estimate_reached_at' => 'datetime',
+        'requires_links' => 'boolean', 'submission_links' => 'array',
     ];
 
     /** A first start this many minutes after the scheduled start counts as late. */
@@ -244,6 +246,7 @@ class Task extends Model
             'instructions_preview' => $this->hasInstructions() ? Str::limit(trim(preg_replace('/\s+/', ' ', $this->description)), 160) : null,
             'pending_extension' => (bool) ($this->pending_extensions_count ?? 0),
             'lock_early_start' => (bool) $this->lock_early_start,
+            'requires_links' => (bool) $this->requires_links,
         ];
     }
 

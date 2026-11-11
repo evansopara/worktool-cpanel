@@ -28,6 +28,8 @@ export type TaskListItem = {
   instructions_preview: string | null;
   pending_extension: boolean;
   lock_early_start: boolean;
+  /** Staff must add links to their work to submit. */
+  requires_links: boolean;
 };
 
 export type TaskPage = { data: TaskListItem[]; meta: { total: number; page: number; per_page: number; last_page: number } };
@@ -90,6 +92,9 @@ export type TaskDetail = {
   working_minutes: number | null;
   is_timer_running: boolean;
   lock_early_start: boolean;
+  requires_links: boolean;
+  /** Links sent with the latest submission. */
+  submission_links: string[] | null;
   estimate_minutes: number;
   logged_seconds: number;
   has_instructions: boolean;
@@ -163,7 +168,7 @@ export const taskApi = {
   remove: (id: number) => api.delete(`/tasks/${id}`),
   start: (id: number, confirm: { confirm_read?: boolean; confirm_early?: boolean } = {}) => api.post(`/tasks/${id}/timer/start`, confirm),
   stop: (id: number) => api.post(`/tasks/${id}/timer/stop`),
-  submit: (id: number) => api.post(`/tasks/${id}/submit`),
+  submit: (id: number, links?: string[]) => api.post(`/tasks/${id}/submit`, links ? { links } : {}),
   approve: (id: number) => api.post(`/tasks/${id}/approve`),
   sendBack: (id: number, reason?: string) => api.post(`/tasks/${id}/send-back`, { reason }),
   readInstructions: (id: number) => api.post(`/tasks/${id}/instructions/read`),

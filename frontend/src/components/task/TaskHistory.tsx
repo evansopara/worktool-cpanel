@@ -53,6 +53,7 @@ type Item = {
   detail?: string;
   change?: { field: string; from: string; to: string };
   note?: string;
+  links?: string[];
   session?: { label: string; left: number; width: number; due: number | null };
   decide?: boolean;
 };
@@ -66,6 +67,7 @@ const FIELD_LABELS: Record<string, string> = {
   estimate_minutes: 'Estimate',
   progress: 'Progress',
   lock_early_start: 'Early start',
+  requires_links: 'Links to submit',
 };
 
 const CAUSES: Record<string, string> = {
@@ -86,6 +88,7 @@ function fieldValue(field: string, v: unknown): string {
   if (field === 'estimate_minutes') return fmtMinutes(Number(v));
   if (field === 'status') return statusInfo(str(v)).label;
   if (field === 'lock_early_start') return v ? "Can't start before scheduled time" : 'Can start early';
+  if (field === 'requires_links') return v ? 'Needed' : 'Not needed';
   if (field === 'progress') return `${v}%`;
   return str(v);
 }
@@ -207,7 +210,7 @@ function toItem(e: TaskEventItem, deadline: string | null): Item {
     case 'estimate_declined':
       return { ...base, icon: 'ext', title: 'More time declined', note: reason };
     case 'submitted':
-      return { ...base, icon: 'check', title: 'Submitted for review' };
+      return { ...base, icon: 'check', title: 'Submitted for review', links: Array.isArray(meta.links) ? meta.links.map(String) : undefined };
     case 'approved':
       return { ...base, icon: 'check', title: 'Approved', detail: 'Task completed' };
     case 'sent_back':
@@ -364,6 +367,17 @@ export function HistoryTimeline({
                   </p>
                 )}
                 {it.note && <p className="m-0 text-[13px] text-ink-2 italic">“{it.note}”</p>}
+                {it.links && (
+                  <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                    {it.links.map((href) => (
+                      <li key={href} className="min-w-0">
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="block truncate text-[13.5px] font-semibold text-review underline underline-offset-2">
+                          {href.replace(/^https?:\/\//, '')}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {it.session && (
                   <div className="flex flex-col gap-1.5 rounded-[14px] bg-brief-tint p-3">
                     <div className="relative h-2.5 overflow-hidden rounded-full bg-brief-track">
