@@ -85,7 +85,8 @@ class HomeController extends Controller
         }
 
         if ($reviewer) {
-            $leave = LeaveApplication::with('user')->where('status', 'pending')->latest()->get();
+            // Their own application is decided by someone else.
+            $leave = LeaveApplication::with('user')->where('status', 'pending')->where('user_id', '!=', $user->id)->latest()->get();
             if ($leave->isNotEmpty()) {
                 $items[] = [
                     'key' => 'leave',

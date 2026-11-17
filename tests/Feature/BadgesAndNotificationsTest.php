@@ -53,8 +53,11 @@ class BadgesAndNotificationsTest extends TestCase
             $t->timestamps();
         });
         foreach (['leave_applications', 'staff_complaints', 'complaints'] as $table) {
-            Schema::create($table, function (Blueprint $t) {
+            Schema::create($table, function (Blueprint $t) use ($table) {
                 $t->id();
+                if ($table === 'leave_applications') {
+                    $t->unsignedBigInteger('user_id');
+                }
                 $t->string('status')->default('pending');
                 $t->timestamps();
             });
@@ -112,7 +115,12 @@ class BadgesAndNotificationsTest extends TestCase
         DB::table('memos')->insert(['subject' => 'New', 'content' => 'x', 'recipients' => json_encode([$this->staff->id]), 'sender_id' => $this->manager->id]);
         DB::table('memo_reads')->insert(['memo_id' => $memo, 'user_id' => $this->staff->id]);
 
-        DB::table('leave_applications')->insert([['status' => 'pending'], ['status' => 'approved']]);
+        // The manager's own pending leave is someone else's to decide.
+        DB::table('leave_applications')->insert([
+            ['user_id' => $this->staff->id, 'status' => 'pending'],
+            ['user_id' => $this->staff->id, 'status' => 'approved'],
+            ['user_id' => $this->manager->id, 'status' => 'pending'],
+        ]);
         DB::table('staff_complaints')->insert(['status' => 'pending']);
         DB::table('complaints')->insert([['status' => 'pending'], ['status' => 'pending']]);
         DB::table('staff_queries')->insert(['assigned_to' => $this->staff->id, 'status' => 'pending']);

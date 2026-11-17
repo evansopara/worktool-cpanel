@@ -85,7 +85,8 @@ class HomeTest extends TestCase
         DB::table('tasks')->where('id', $old->id)->update(['updated_at' => now()->subDays(9)]);
         $this->project('QueenbodySecret', 100);                   // completed
 
-        DB::table('leave_applications')->insert([['user_id' => $this->staff->id, 'status' => 'pending'], ['user_id' => $this->pm->id, 'status' => 'approved']]);
+        // The ops manager's own pending leave isn't theirs to decide.
+        DB::table('leave_applications')->insert([['user_id' => $this->staff->id, 'status' => 'pending'], ['user_id' => $this->pm->id, 'status' => 'approved'], ['user_id' => $this->ops->id, 'status' => 'pending']]);
         DB::table('complaints')->insert([['status' => 'pending'], ['status' => 'pending']]);
         DB::table('staff_complaints')->insert([['status' => 'reviewed']]);
 

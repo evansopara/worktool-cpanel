@@ -14,6 +14,7 @@ import { PageBody } from '@/components/shell/PageHeader';
 import { errorText, fmtWhen } from '@/lib/tasks';
 import { fmtDay, fmtRange } from '@/lib/projects';
 import { roleLabel } from '@/components/shell/nav';
+import { useAuth } from '@/providers/AuthProvider';
 
 // People hub for Operations Managers and Team Leads (People / MPeople
 // artboards): Leave, Team, Queries, Staff complaints.
@@ -22,6 +23,7 @@ type Tab = 'leave' | 'team' | 'queries' | 'complaints';
 type Person = { id: number; first_name: string; last_name: string; email?: string | null };
 type Leave = {
   id: number;
+  user_id: number;
   user?: Person;
   leave_type: string;
   start_date: string;
@@ -88,7 +90,9 @@ export function PeopleScreen() {
 
   const leave = useQuery<Leave[]>({ queryKey: ['leave'], queryFn: () => leaveApi.list().then((r) => r.data) });
   const complaints = useQuery<Complaint[]>({ queryKey: ['staff-complaints'], queryFn: () => staffComplaintsApi.list().then((r) => r.data) });
-  const pendingLeave = (leave.data ?? []).filter((l) => l.status === 'pending').length;
+  const { user } = useAuth();
+  // An Operations Manager's own application is someone else's to decide.
+  const pendingLeave = (leave.data ?? []).filter((l) => l.status === 'pending' && l.user_id !== user?.id).length;
   const pendingComplaints = (complaints.data ?? []).filter((c) => c.status === 'pending').length;
   const [asking, setAsking] = useState(false);
 
@@ -126,7 +130,7 @@ export function PeopleScreen() {
         <TabBar tabs={tabs} tab={tab} onChange={setTab} mobile />
       </div>
 
-      {tab === 'leave' && <LeaveTab items={leave.data ?? []} loading={leave.isLoading} />}
+      {tab === 'leave' && <LeaveTab items={leave.data ?? []} loading={leave.isLoading} meId={user?.id} />}
       {tab === 'team' && <TeamTab />}
       {tab === 'queries' && <QueriesTab onSend={() => setAsking(true)} />}
       {tab === 'complaints' && <ComplaintsTab items={complaints.data ?? []} loading={complaints.isLoading} />}
@@ -222,7 +226,7 @@ function LeaveDetails({ leave: l, onClose }: { leave: Leave | null; onClose: () 
   );
 }
 
-function LeaveTab({ items, loading }: { items: Leave[]; loading: boolean }) {
+function LeaveTab({ items, loading, meId }: { items: Leave[]; loading: boolean; meId?: number }) {
   const qc = useQueryClient();
   const [rejecting, setRejecting] = useState<Leave | null>(null);
   const [viewing, setViewing] = useState<Leave | null>(null);
@@ -239,7 +243,8 @@ function LeaveTab({ items, loading }: { items: Leave[]; loading: boolean }) {
     onError: (err) => toast.error(errorText(err, 'Could not save the decision.')),
   });
 
-  const pending = items.filter((l) => l.status === 'pending');
+  // Your own pending application is followed under My leave, not decided here.
+  const pending = items.filter((l) => l.status === 'pending' && l.user_id !== meId);
   const history = items.filter((l) => l.status !== 'pending');
   const stats = [
     { value: pending.length, label: 'Pending review', note: 'Applications awaiting review', color: 'text-yellow' },

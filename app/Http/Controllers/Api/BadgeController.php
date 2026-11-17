@@ -32,7 +32,7 @@ class BadgeController extends Controller
         $counts = [
             'inbox' => fn () => $this->inbox($user),
             'people' => fn () => $reviewer
-                ? LeaveApplication::where('status', 'pending')->count() + StaffComplaint::where('status', 'pending')->count()
+                ? LeaveApplication::where('status', 'pending')->where('user_id', '!=', $user->id)->count() +StaffComplaint::where('status', 'pending')->count()
                 : 0,
             'clients' => fn () => $reviewer ? Complaint::where('status', 'pending')->count() : 0,
             'reviews' => fn () => $user->role === 'team_lead'

@@ -100,6 +100,10 @@ class SimpleController extends Controller
     public function leaveDecide(Request $request, LeaveApplication $leave)
     {
         $this->authorizeRole($request, ['operations_manager', 'team_lead']);
+        // Operations Managers apply for leave too; another reviewer decides it.
+        if ((int) $leave->user_id === (int) $request->user()->id) {
+            return response()->json(['message' => 'Someone else has to decide your own leave application.'], 403);
+        }
         $data = $request->validate([
             'status' => 'required|in:approved,rejected',
             'review_comment' => 'nullable|string',

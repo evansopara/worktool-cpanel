@@ -58,6 +58,8 @@ const PAGES = {
     roles: ALL,
     label: (u) => (u.role === 'operations_manager' || u.role === 'team_lead' ? 'Leave' : 'Leave application'),
   },
+  // Operations Managers decide leave in the People hub but apply for their own here.
+  myLeave: { href: '/dashboard/leave', roles: ['operations_manager'], label: 'My leave' },
   team: { href: '/dashboard/team', roles: ['operations_manager', 'team_lead'], label: 'Team' },
   queries: {
     href: '/dashboard/queries',
@@ -139,8 +141,9 @@ const S = {
     key: 'people',
     label: 'People',
     sub: 'Team, leave, queries, complaints',
-    pages: [PAGES.leave, PAGES.team, PAGES.queries, PAGES.staffComplaints],
+    pages: [PAGES.leave, PAGES.team, PAGES.queries, PAGES.staffComplaints, PAGES.myLeave],
     hub: HUBS.people,
+    hubCovers: [PAGES.leave, PAGES.team, PAGES.queries, PAGES.staffComplaints],
   },
   clients: {
     key: 'clients',

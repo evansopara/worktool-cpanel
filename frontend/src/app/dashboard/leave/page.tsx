@@ -15,9 +15,10 @@ import { Button, IconButton, SegmentedFilter, Sheet, SheetTitle, StatusPill, typ
 import { PageBody } from '@/components/shell/PageHeader';
 import { Empty, Facts, Field, Note, ScreenHeader, area, card, cardTitle, field } from '@/components/requests/parts';
 
-// Leave application for staff, interns, Project Managers and Customer
-// Support Officers. Operations Managers and Team Leads decide leave in the
-// People hub, so they're sent there.
+// Leave application for staff, interns, Project Managers, Customer Support
+// Officers and Operations Managers. Team Leads only decide leave (in the
+// People hub), so they're sent there. An Operations Manager's own
+// application is decided by another Operations Manager or a Team Lead.
 
 const LEAVE_TYPES = [
   { value: 'day_off', label: 'Day off' },
@@ -36,7 +37,7 @@ const EMPTY = { leave_type: '', start_date: '', end_date: '', reason: '' };
 export default function LeavePage() {
   const { user } = useAuth();
   const router = useRouter();
-  const reviewer = user?.role === 'operations_manager' || user?.role === 'team_lead';
+  const reviewer = user?.role === 'team_lead';
   useEffect(() => {
     if (reviewer) router.replace('/dashboard/people');
   }, [reviewer, router]);
